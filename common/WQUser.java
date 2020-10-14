@@ -60,14 +60,4 @@ public class WQUser {
         return this.username + " " + this.password + " " + this.points + " " + this.friends;
     }
     
-    // public JSONObject tJsonObject() {
-    //     JSONObject userJson = new JSONObject();
-    //     userJson.put("username", this.username);
-    //     userJson.put("password", this.password);
-    //     userJson.put("points", this.points);
-
-    //     if(!friends.isEmpty()) userJson.put("friends", this.friends);
-
-    //     return userJson;
-    // }
 }
