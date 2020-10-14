@@ -59,5 +59,16 @@ public class WQUser {
     public String toString() {
         return this.username + " " + this.password + " " + this.points + " " + this.friends;
     }
+
+    public String description() {
+        String d = "Username: " + this.username + "\nPassword: " + this.password + "\nScore: " + this.points;
+        if(!this.friends.isEmpty()){
+            d.concat("\nFriends: ");
+            for(int i=0; i<this.friends.size(); i++) {
+                d.concat(this.friends.get(i).toString()+", ");
+            }
+        }
+        return d;
+    }
     
 }

@@ -76,7 +76,7 @@ public class WQClientGUI extends JFrame implements ActionListener, DocumentListe
 
         super();
 
-        // username = "Marina";
+        username = "Marina";
         // points = 420;
         // challenger = "Vale";
 
@@ -163,7 +163,7 @@ public class WQClientGUI extends JFrame implements ActionListener, DocumentListe
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 String friendName = JOptionPane.showInputDialog(settingsPanel,
-                        "Who do you want to add as a friend?", null);
+                        "Who do you want to add as a friend?", "sfdfsfs");
             }
         });
         settingsPanelConstraints.gridx = 0;
