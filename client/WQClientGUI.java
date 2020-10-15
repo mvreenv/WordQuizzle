@@ -8,6 +8,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.security.Key;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -21,18 +22,22 @@ import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+
+
 
 /**
  * Classe che gestisce l'interfaccia grafica del client di WordQuizzle.
  * @author Marina Pierotti
  */
 
-public class WQClientGUI extends JFrame implements ActionListener, DocumentListener {
+public class WQClientGUI {
 
     /**
-     * Valore impostato di default.
+     * Frame per la costruzione della GUI del client WordQuizzle.
      */
-    private static final long serialVersionUID = 1L;
+    private JFrame frame;
 
     /**
      * Pannello di login coi suoi componenti
@@ -76,14 +81,15 @@ public class WQClientGUI extends JFrame implements ActionListener, DocumentListe
 
         super();
 
-        username = "Marina";
+        WQClientLink.gui = this;
+        // username = "Marina";
         // points = 420;
         // challenger = "Vale";
 
-        this.setTitle("WordQuizzle");
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame = new JFrame("WordQuizzle");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        this.setLayout(new BorderLayout());
+        frame.setLayout(new BorderLayout());
 
         // LOGIN PANEL START
         loginPanel = new JPanel();
@@ -92,19 +98,40 @@ public class WQClientGUI extends JFrame implements ActionListener, DocumentListe
 
         JLabel usernameLabel = new JLabel("Username");
         usernameInput = new JTextField();
-        usernameInput.getDocument().addDocumentListener(this);
         usernameLabel.setLabelFor(usernameInput);
 
         JLabel passwordLabel = new JLabel("Password");
         passwordInput = new JPasswordField();
-        passwordInput.getDocument().addDocumentListener(this);
         passwordLabel.setLabelFor(passwordInput);
 
         loginButton = new JButton("Login");
-        loginButton.addActionListener(this);
+        loginButton.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                // inserire codice per fare il login
+            }
+        });
 
         registerButton = new JButton("Register");
-        registerButton.addActionListener(this);
+        registerButton.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                String pw = String.copyValueOf(passwordInput.getPassword());
+                int n = WQClientLink.client.registra_utente(usernameInput.getText(), pw);
+                if (n==0) {
+                    JOptionPane.showMessageDialog(frame, "Registrazione avvenuta con successo.", "Esito registrazione", JOptionPane.INFORMATION_MESSAGE);
+                    usernameInput.setText("");
+                    passwordInput.setText("");
+                }
+                else if (n==-1) {
+                    JOptionPane.showMessageDialog(frame, "Username già registrato, registrazione non eseguita.", "Esito registrazione", JOptionPane.ERROR_MESSAGE);
+                    usernameInput.setText("");
+                    passwordInput.setText("");
+                }
+                else if (n==-2) JOptionPane.showMessageDialog(frame, "Password vuota, registrazione fallita.", "Esito registrazione", JOptionPane.ERROR_MESSAGE);
+                else if (n==-3) JOptionPane.showMessageDialog(frame, "Errore di comunicazione col server, riprovare.", "Esito registrazione", JOptionPane.ERROR_MESSAGE);
+            }
+        });
 
         loginPanelConstraints.fill = GridBagConstraints.HORIZONTAL;
 
@@ -163,7 +190,7 @@ public class WQClientGUI extends JFrame implements ActionListener, DocumentListe
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 String friendName = JOptionPane.showInputDialog(settingsPanel,
-                        "Who do you want to add as a friend?", "sfdfsfs");
+                        "Who do you want to add as a friend?", null);
             }
         });
         settingsPanelConstraints.gridx = 0;
@@ -203,7 +230,7 @@ public class WQClientGUI extends JFrame implements ActionListener, DocumentListe
         settingsPanelConstraints.gridy = 0;
         settingsPanelConstraints.gridheight = 5;
         settingsPanelConstraints.insets.left = 10;
-        settingsPanel.getLayout().preferredLayoutSize(this);
+        settingsPanel.getLayout().preferredLayoutSize(frame);
         settingsPanel.add(settingsScrollPanel, settingsPanelConstraints);
         
         //SETTIMGS PANEL END
@@ -243,7 +270,6 @@ public class WQClientGUI extends JFrame implements ActionListener, DocumentListe
         challengePanel.add(currentWord, challengePanelConstraints);
 
         translationInput = new JTextField();
-        translationInput.getDocument().addDocumentListener(this);
         translationInput.setHorizontalAlignment(JTextField.CENTER);
         translationInput.setFont(challengeFont);
         challengePanelConstraints.gridx = 0;
@@ -253,7 +279,22 @@ public class WQClientGUI extends JFrame implements ActionListener, DocumentListe
         challengePanel.add(translationInput, challengePanelConstraints);
 
         translateButton = new JButton("Translate");
-        translateButton.addActionListener(this);
+        translateButton.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                String translation = translationInput.getText();
+                // completare il codice
+            }
+        });
+
+        // se premo invio durante la digitazione della traduzione è come se avessi cliccato il bottone "Translate"
+        translationInput.addKeyListener(new KeyAdapter(){
+            @Override
+            public void keyPressed(KeyEvent e){
+                if(e.getKeyCode()==KeyEvent.VK_ENTER) translateButton.doClick();
+            }
+        });
+
         challengePanelConstraints.gridx = 2;
         challengePanelConstraints.gridy = 4;
         challengePanelConstraints.insets.top = 10;
@@ -262,83 +303,14 @@ public class WQClientGUI extends JFrame implements ActionListener, DocumentListe
         // CHALLENGE PANEL END
 
         
-        if(username==null) {    
-            this.add(loginPanel, BorderLayout.CENTER);
-        } 
-        else { 
-            this.add(topPanel, BorderLayout.NORTH);
-            this.add(settingsPanel, BorderLayout.CENTER);
-        } 
+        frame.add(topPanel, BorderLayout.NORTH);
+        // frame.add(loginPanel, BorderLayout.CENTER);
+        // frame.add(settingsPanel, BorderLayout.CENTER);
+        frame.add(challengePanel, BorderLayout.CENTER);
 
-        if(challenger!=null){
-            this.add(challengePanel, BorderLayout.CENTER);
-        }
-
-        this.setSize(400,300);
-        this.setLocationRelativeTo(null);
-        this.setVisible(true);
-
-    }
-
-    /**
-     * @return contenuto del campo di inserimento username
-     */
-    public String getUsername(){
-        return usernameInput.getText();
-    }
-
-    /**
-     * @return contenuto del campo di inserimento password
-     */
-    public char[] getPassword(){
-        return passwordInput.getPassword();
-    }
-
-    /**
-     * Metodo da implementare per ActionListener.
-     */
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        
-        if(e.getSource().equals(addFriendButton)){
-
-        }
-
-        if(e.getSource().equals(loginButton)){
-            loginPanel.setBackground(Color.red);
-        }
-        
-        if(e.getSource().equals(registerButton)){    
-            loginPanel.setBackground(Color.blue);
-        }
-        
-        if(e.getSource().equals(translateButton) && translationInput.getText().equals("bottle")){
-            challengePanel.setBackground(Color.green);
-        }
-
-    }
-
-    /**
-     * Metodo da implementare per DocumentListener.
-     */
-    @Override
-    public void insertUpdate(DocumentEvent e) {
-
-    }
-
-    /**
-     * Metodo da implementare per DocumentListener.
-     */
-    @Override
-    public void removeUpdate(DocumentEvent e) {
-
-    }
-
-    /**
-     * Metodo da implementare per DocumentListener.
-     */
-    @Override
-    public void changedUpdate(DocumentEvent e) {
+        frame.setSize(400,300);
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
 
     }
 
