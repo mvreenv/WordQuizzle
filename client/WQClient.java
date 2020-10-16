@@ -57,9 +57,6 @@ public class WQClient {
 
         int porta = Integer.parseInt(args[0]);
 
-        // int porta = 4000;
-        // if (args.length>0) porta = Integer.parseInt(args[0]);
-
         WQClient myClient = new WQClient(porta);
         WQClientGUI myClientGUI = new WQClientGUI();
 

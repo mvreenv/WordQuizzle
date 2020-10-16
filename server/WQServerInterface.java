@@ -1,7 +1,5 @@
 package server;
 
-import org.json.simple.JSONObject;
-
 /**
  * Inferfaccia del server WordQuizzle.
  * @author Marina Pierotti
@@ -12,8 +10,8 @@ public interface WQServerInterface {
     /**
      * Login per un utente già registrato al servizio.
      * @param nickUtente Username dell'utente che vuole effettuare il login.
-     * @param password Password associata all'utente .
-     * @return Codice che indica l'avvenuto login o errore in caso la password sia errata.
+     * @param password Password associata all'utente.
+     * @return 0 se il login è stato effettuato con successo, -1 se la password è errata, -2 se l'utente non è registrato, -3 se l'utente è già loggato.
      */
     public int login(String nickUtente, String password);
 
@@ -27,7 +25,7 @@ public interface WQServerInterface {
      * Crea una relazione di amicizia fra due utenti registrati al servizio.
      * @param nickUtente Username dell'utente che richiede di creare la relaizone di amicizia.
      * @param nickAmico Username dell'utente che si vuole aggiungere come amico.
-     * @return Codice di avvenuta registrazione dell'amicizia o un codice di errore in caso uno dei due username non esista oppure la relazione di amicizia è già esistente.
+     * @return 0 se la registrazione dell'amicizia è avvenuta, -1 se uno dei due username non esiste, -2 se la relazione di amicizia è già esistente, -3 se nickUtente e nickAmico sono lo stesso username.
      */
     public int aggiungiAmico(String nickUtente, String nickAmico);
 
@@ -36,7 +34,7 @@ public interface WQServerInterface {
      * @param nickUtente Username dell'utente che richiede di vedere la propria lista di amici.
      * @return Oggetto JSON che rappresenta la lista degli amici.
      */
-    public JSONObject lista_amici(String nickUtente);
+    public String lista_amici(String nickUtente);
 
     /**
      * Invia una richiesta di sfida da parte di un utente ad un altro.
@@ -58,5 +56,5 @@ public interface WQServerInterface {
      * @param nickUtente Username dell'utente che richiede la lista.
      * @return Oggetto JSON contenente la classifica.
      */
-    public JSONObject mostra_classifica(String nickUtente);
+    public String mostra_classifica(String nickUtente);
 }
