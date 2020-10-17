@@ -1,7 +1,7 @@
 package server;
 
 /**
- * Inferfaccia del server WordQuizzle.
+ * Inferfaccia del server WordQuizzle che raccoglie i requisiti del progetto.
  * @author Marina Pierotti
  */
 
@@ -11,9 +11,10 @@ public interface WQServerInterface {
      * Login per un utente già registrato al servizio.
      * @param nickUtente Username dell'utente che vuole effettuare il login.
      * @param password Password associata all'utente.
+     * @param manager Gestore della connessione col client in cui l'utente si logga.
      * @return 0 se il login è stato effettuato con successo, -1 se la password è errata, -2 se l'utente non è registrato, -3 se l'utente è già loggato.
      */
-    public int login(String nickUtente, String password);
+    public int login(String nickUtente, String password, WQManager manager);
 
     /**
      * Effettua il logout dal servizio.

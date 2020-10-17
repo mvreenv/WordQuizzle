@@ -54,7 +54,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     private HashMap<String, WQUser> userDB; 
 
     /**
-     * Mappa degli utenti collegati, come chiave si usa lo username dell'utente.
+     * Mappa degli utenti collegati, come chiave si usa lo username dell'utente. FIX CI VA WQManager
      */
     private HashMap<String, WQUser> onlineUsers;
 
@@ -88,7 +88,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             Scanner scanner = new Scanner(System.in);
 
             // ciclo di ascolto
-            do {
+            while (isRunning) {
                 socket = serverSocket.accept();
 
                 // smistamento ai gestori
@@ -126,7 +126,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                             else System.out.println(">> Input errato, riprova. (classifica user)");
                             break;
                         case "login" :
-                            if (words.length==3) this.login(words[1], words[2]);
+                            if (words.length==3) this.login(words[1], words[2], new WQManager(this, socket)); // CHECK
                             else System.out.println(">> Input errato, riprova. (login user password)");
                             break;
                         case "logout" :
@@ -141,13 +141,16 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                             if(words.length==2) this.mostra_punteggio(words[1]);
                             else System.out.println(">> Input errato, riprova. (punteggio user)");
                             break;
+                        case "switch_off" :
+                            isRunning = false;
+                            break;
                         default :
                             System.out.println(">> Input errato, (digita \"help\" per vedere la lista dei comandi)");
                             break;
                     }
                 }
                 else Thread.sleep(500);
-            } while (isRunning);
+            } 
 
             System.out.println(">> Server in corso di spegnimento.");
             scanner.close();
@@ -160,6 +163,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         finally {
             isRunning = false;
             System.out.println(">> Il server è offline.");
+            System.exit(1); //CHECK
         }
         
 
@@ -187,7 +191,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     }
 
     // da implementare con connessione TCP
-    public synchronized int login(String nickUtente, String password) {
+    public synchronized int login(String nickUtente, String password, WQManager manager) {
 
         // verifica se l'utente è già loggato
         if(onlineUsers.get(nickUtente)!=null) {
@@ -340,23 +344,21 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             // lettura dati utente da file
             FileInputStream userDBFileInputStream = new FileInputStream(new File("datiServer.json"));
             String userBaseJson = "";
-            byte[] buff = new byte[512];
-            ByteBuffer bBuff;
+            byte[] backingArray = new byte[512];
+            ByteBuffer buffer;
             int n;
             do {
-                n = userDBFileInputStream.read(buff);
-                bBuff = ByteBuffer.wrap(buff);
-                userBaseJson = userBaseJson.concat(StandardCharsets.UTF_8.decode(bBuff).toString());
+                n = userDBFileInputStream.read(backingArray);
+                buffer = ByteBuffer.wrap(backingArray);
+                userBaseJson = userBaseJson.concat(StandardCharsets.UTF_8.decode(buffer).toString());
             } while (n > -1);
             userDBFileInputStream.close();
 
-            // conversione in json
+            // conversione in json e upload nel database a runtime del server
             Gson gson = new Gson();
             JsonReader reader = new JsonReader(new StringReader(userBaseJson));
             reader.setLenient(true);
             Type type = new TypeToken<HashMap<String, WQUser>>(){}.getType();
-
-            // upload nel database a runtime del server
             userDB = gson.fromJson(reader, type);
             System.out.println(">> User data (server) = " + userDB.values());
 
@@ -420,6 +422,19 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
         Gson amici = new Gson();
         return amici.toJson(connessi.toArray());
+    }
+
+    /**
+     * Restituisce le informazioni su un utente registrato.
+     * @param name username dell'utente
+     * @return le informazioni sull'utente
+     */
+    public String getUser(String name) {
+        if(userDB.containsKey(name)) {
+            Gson json = new Gson();
+            return json.toJson(this.userDB.get(name));
+        }
+        return null;
     }
 
     public static void main(String[] args) {
