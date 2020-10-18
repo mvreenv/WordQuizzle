@@ -8,6 +8,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.security.Key;
 
 import javax.swing.JButton;
@@ -19,12 +21,6 @@ import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-
 
 
 /**
@@ -82,9 +78,6 @@ public class WQClientGUI {
         super();
 
         WQClientLink.gui = this;
-        // username = "Marina";
-        // points = 420;
-        // challenger = "Vale";
 
         frame = new JFrame("WordQuizzle");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -108,7 +101,23 @@ public class WQClientGUI {
         loginButton.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                // inserire codice per fare il login
+                String pw = String.copyValueOf(passwordInput.getPassword());
+                int n = WQClientLink.client.login(usernameInput.getText(), pw);
+                if (n==0) { // login avvenuto con successo
+                    JOptionPane.showMessageDialog(frame, "Login avvenuto con successo!");
+                    frame.remove(loginPanel);
+                    frame.add(topPanel);
+                    frame.add(settingsPanel);
+                }
+                else if (n==-1) { // password errata
+                    JOptionPane.showMessageDialog(frame, "Password errata.", "Errore login", JOptionPane.WARNING_MESSAGE);
+                }
+                else if (n==-2) { // utente non registrato
+                    JOptionPane.showMessageDialog(frame, "Username non riconosciuto.", "Errore login", JOptionPane.WARNING_MESSAGE);
+                }
+                else if (n==-3) { // l'utente è già loggato -- non dovrebbe mai succedere
+                    JOptionPane.showMessageDialog(frame, "Utente già loggato.", "Errore login", JOptionPane.WARNING_MESSAGE);
+                }
             }
         });
 
@@ -303,10 +312,10 @@ public class WQClientGUI {
         // CHALLENGE PANEL END
 
         
-        frame.add(topPanel, BorderLayout.NORTH);
-        // frame.add(loginPanel, BorderLayout.CENTER);
+        // frame.add(topPanel, BorderLayout.NORTH);
+        frame.add(loginPanel, BorderLayout.CENTER);
         // frame.add(settingsPanel, BorderLayout.CENTER);
-        frame.add(challengePanel, BorderLayout.CENTER);
+        // frame.add(challengePanel, BorderLayout.CENTER);
 
         frame.setSize(400,300);
         frame.setLocationRelativeTo(null);
