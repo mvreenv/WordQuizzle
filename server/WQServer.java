@@ -31,7 +31,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Implementazione del server WordQuizzle.
- * @author Marina Pierotti
  */
 
 public class WQServer extends RemoteServer implements WQInterface, WQServerInterface {
@@ -56,7 +55,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     /**
      * Mappa degli utenti collegati, come chiave si usa lo username dell'utente. FIX CI VA WQManager
      */
-    private HashMap<String, WQUser> onlineUsers;
+    private HashMap<String, WQManager> onlineUsers;
 
     /**
      * Costruttore.
@@ -71,7 +70,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         this.port = porta;
         this.isRunning = true;
         this.userDB = new HashMap<String, WQUser>();
-        this.onlineUsers = new HashMap<String, WQUser>();
+        this.onlineUsers = new HashMap<String, WQManager>();
 
         try {
 
@@ -88,76 +87,80 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             Scanner scanner = new Scanner(System.in);
 
             // ciclo di ascolto
-            while (isRunning) {
+            do {
                 socket = serverSocket.accept();
 
                 // smistamento ai gestori
                 if(socket!=null) {
                     threadPool.execute(new WQManager(this, socket));
+                    System.out.println(">> SERVER >> Nuovo gestore in esecuzione.");
                 }
+                // // else {
+                //     // ascolto dei comandi da terminale sul server
+                //     if (scanner.hasNext()){
+                        
+                //         String command = scanner.nextLine();
+                //         String[] words = command.split(" ");
 
-                // ascolto dei comandi da terminale sul server
-                else if(scanner.hasNext()) {
-                    String command = scanner.nextLine();
-                    String[] words = command.split(" ");
+                //         switch (words[0]) {
+                //             case "help" :
+                //                 System.out.println(">> LISTA DEI COMANDI DEL SERVER WORDQUIZZLE ");
+                //                 System.out.println(">> aggiungi_amico user1 user2\taggiunge user2 alla lista amici di user1");
+                //                 System.out.println(">> amici user\t\t\tmostra la lista amici di user");
+                //                 System.out.println(">> classifica user\t\tmostra la classifica degli amici di user (user incluso)");
+                //                 System.out.println(">> login user password\t\teffettua il login di user con password");
+                //                 System.out.println(">> logout user\t\t\teffettua il logout di user");
+                //                 System.out.println(">> online \t\t\tmostra la lista degli utenti online");
+                //                 System.out.println(">> punteggio user\t\tmostra il punteggio di user");
+                //                 System.out.println(">>");
+                //                 break;
+                //             case "aggiungi_amico" :
+                //                 if(words.length==3) this.aggiungiAmico(words[1], words[2]);
+                //                 else System.out.println(">> Input errato, riprova. (aggiungi_amico user1 user2)");
+                //                 break;
+                //             case "amici" :
+                //                 if(words.length==2) this.lista_amici(words[1]);
+                //                 else System.out.println(">> Input errato, riprova. (amici user)");
+                //                 break;
+                //             case "classifica" :
+                //                 if(words.length==2) this.mostra_classifica(words[1]);
+                //                 else System.out.println(">> Input errato, riprova. (classifica user)");
+                //                 break;
+                //             case "login" :
+                //                 if (words.length==3) this.login(words[1], words[2], new WQManager(this, socket)); // CHECK
+                //                 else System.out.println(">> Input errato, riprova. (login user password)");
+                //                 break;
+                //             case "logout" :
+                //                 if (words.length==2) this.logout(words[1]);
+                //                 else System.out.println(">> Input errato, riprova. (logout user)");
+                //                 break;
+                //             case "online" :
+                //                 if(this.onlineUsers.size()>0) this.usersOnline();
+                //                 else System.out.println(">> Utenti online: nessun utente online.");
+                //                 break;
+                //             case "punteggio" :
+                //                 if(words.length==2) this.mostra_punteggio(words[1]);
+                //                 else System.out.println(">> Input errato, riprova. (punteggio user)");
+                //                 break;
+                //             case "switch_off" :
+                //                 isRunning = false;
+                //                 break;
+                //             default :
+                //                 System.out.println(">> Input errato, (digita \"help\" per vedere la lista dei comandi)");
+                //                 break;
+                //         }   
+                //     }
+                //     Thread.sleep(500);
+                // // }
 
-                    switch (words[0]) {
-                        case "help" :
-                            System.out.println(">> LISTA DEI COMANDI DEL SERVER WORDQUIZZLE ");
-                            System.out.println(">> aggiungi_amico user1 user2\taggiunge user2 alla lista amici di user1");
-                            System.out.println(">> amici user\t\t\tmostra la lista amici di user");
-                            System.out.println(">> classifica user\t\tmostra la classifica degli amici di user (user incluso)");
-                            System.out.println(">> login user password\t\teffettua il login di user con password");
-                            System.out.println(">> logout user\t\t\teffettua il logout di user");
-                            System.out.println(">> online \t\t\tmostra la lista degli utenti online");
-                            System.out.println(">> punteggio user\t\tmostra il punteggio di user");
-                            System.out.println(">>");
-                            break;
-                        case "aggiungi_amico" :
-                            if(words.length==3) this.aggiungiAmico(words[1], words[2]);
-                            else System.out.println(">> Input errato, riprova. (aggiungi_amico user1 user2)");
-                            break;
-                        case "amici" :
-                            if(words.length==2) this.lista_amici(words[1]);
-                            else System.out.println(">> Input errato, riprova. (amici user)");
-                            break;
-                        case "classifica" :
-                            if(words.length==2) this.mostra_classifica(words[1]);
-                            else System.out.println(">> Input errato, riprova. (classifica user)");
-                            break;
-                        case "login" :
-                            if (words.length==3) this.login(words[1], words[2], new WQManager(this, socket)); // CHECK
-                            else System.out.println(">> Input errato, riprova. (login user password)");
-                            break;
-                        case "logout" :
-                            if (words.length==2) this.logout(words[1]);
-                            else System.out.println(">> Input errato, riprova. (logout user)");
-                            break;
-                        case "online" :
-                            if(this.onlineUsers.size()>0) this.usersOnline();
-                            else System.out.println(">> Utenti online: nessun utente online.");
-                            break;
-                        case "punteggio" :
-                            if(words.length==2) this.mostra_punteggio(words[1]);
-                            else System.out.println(">> Input errato, riprova. (punteggio user)");
-                            break;
-                        case "switch_off" :
-                            isRunning = false;
-                            break;
-                        default :
-                            System.out.println(">> Input errato, (digita \"help\" per vedere la lista dei comandi)");
-                            break;
-                    }
-                }
-                else Thread.sleep(500);
-            } 
+            } while (isRunning);
 
             System.out.println(">> Server in corso di spegnimento.");
             scanner.close();
             threadPool.shutdown();
             serverSocket.close();
 
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) { // | InterruptedException
             System.out.println(">> " + e.getMessage());
         }
         finally {
@@ -190,32 +193,30 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         }
     }
 
+    // 0 se il login è stato effettuato con successo, -1 se la password è errata, -2 se l'utente non è registrato, -3 se l'utente è già loggato.
     // da implementare con connessione TCP
     public synchronized int login(String nickUtente, String password, WQManager manager) {
-
-        // verifica se l'utente è già loggato
-        if(onlineUsers.get(nickUtente)!=null) {
-            System.out.println(">> Login: l'utente " + nickUtente + " ha già effettuato il login.");
-            return -3;
+        // controllo se nickUtente è registrato
+        if (userDB.containsKey(nickUtente)) { 
+            // controllo che nickUtente non sia già loggato
+            if(!onlineUsers.containsKey(nickUtente)) {
+                // controllo che la password sia corretta
+                if(userDB.get(nickUtente).password.equals(password)) {
+                    onlineUsers.put(nickUtente, manager);
+                    return 0; // login eseguito con successo
+                }
+                
+                else { // password errata
+                    return -1; 
+                }
+            }
+            else { // nickutente è già loggato
+                return -3;
+            }
         }
-
-        // verifica se l'utente è registrato
-        else if(userDB.get(nickUtente)==null) {
-            System.out.println(">> Login: l'utente " + nickUtente + " non è registrato.");
+        else { // nickUtente non è registrato
             return -2;
         }
-
-        // verifica la password
-        else if(!password.equals(userDB.get(nickUtente).password)) {
-            System.out.println(">> Login: passowrd errata per l'utente " + nickUtente + ".");
-            return -1;
-        }
-
-        // FIX NELLA LISTA ONLINE USER CI VA <String, WQManager>
-        // inserimento dell'utente nella lista degli utenti online
-        onlineUsers.put(nickUtente, userDB.get(nickUtente));
-        System.out.println(">> Login: " + nickUtente + " login effettuato con successo.");
-        return 0;
     }
 
     public void logout(String nickUtente) {
@@ -388,7 +389,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     }
 
     /**
-     * Salva lo stato dei dati degli utenti sul file datiServer.json
+     * Salva lo stato dei dati degli utenti sul file 'datiServer.json'
      */
     public void saveServer(){
         if(userDB.size()>0){
@@ -429,10 +430,9 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
      * @param name username dell'utente
      * @return le informazioni sull'utente
      */
-    public String getUser(String name) {
+    public WQUser getUser(String name) {
         if(userDB.containsKey(name)) {
-            Gson json = new Gson();
-            return json.toJson(this.userDB.get(name));
+            return userDB.get(name);
         }
         return null;
     }
