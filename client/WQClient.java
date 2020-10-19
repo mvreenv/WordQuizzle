@@ -2,6 +2,7 @@ package client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -11,6 +12,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.ArrayList;
 
 import common.WQInterface;
 import common.WQUser;
@@ -73,10 +75,10 @@ public class WQClient {
     }
 
     /**
-     * 
-     * @param username
-     * @param password
-     * @return
+     * Esegue il login dell'utente specificato.
+     * @param username lo username
+     * @param password la password
+     * @return 
      */
     public int login(String username, String password) {
 
@@ -112,7 +114,7 @@ public class WQClient {
                 // legge la risposta
                 if (command.equals("answer")) {
 
-                    if (received.split(" ")[1].equals("OK")) {
+                    if (received.split(" ")[1].equals("LOGINOK")) {
                         // ottengo i dati dell'utente
                         WQUser myUser = null;
                         Gson json = new Gson();
@@ -127,9 +129,13 @@ public class WQClient {
                         buf.flip();
                         received = StandardCharsets.UTF_8.decode(buf).toString();
                         myUser = json.fromJson(received, WQUser.class);
+                        if (myUser!=null) {
+                            WQClientLink.gui.setUser(myUser.username, myUser.points);
+                            System.out.println(">> CLIENT >> " + myUser.username + " loggato.");
+                        }
 
                         // avvio il thread listener TCP del client
-                        //new Thread(new WQClientReceiver(socket, key)).start();
+                        new Thread(new WQClientReceiver(socket, key)).start();
 
                         // avvio il listener UDP 
                         return 0;
@@ -156,30 +162,98 @@ public class WQClient {
         return -4; // errore generico
     }
 
+    public void logout(String username) {
+        try {
+            this.socket.close();
+        } catch (IOException e) {}
+        //this.socket = null;
+        System.out.println(">> CLIENT >> " + username + " si è disconnesso." );
+
+    }
+
+    /**
+     * Invia comandi al server.
+     * @return 1 l'invio ha avuto successo, 0 se c'è IOException, -1 se 
+     */
+    public int send(String message) {
+        try {
+            ByteBuffer buffer = ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8));
+            int n;
+            do {
+                n = ((SocketChannel)key.channel()).write(buffer);
+            } while (n>0);
+
+            // messaggi di risposta per aggiungi_amico per dare feedback all'utente tramite gui client
+            if(message.split(" ")[0].equals("aggiungi_amico")) {
+                buffer.clear();
+                buffer = ByteBuffer.allocate(1024);
+                do {
+                    n = ((SocketChannel)key.channel()).read(buffer);
+                } while(n==0);
+                do {
+                    n = ((SocketChannel)key.channel()).read(buffer);
+                } while(n>0);
+                buffer.flip();
+                String risposta = StandardCharsets.UTF_8.decode(buffer).toString();
+                if(risposta.split(" ")[0].equals("answer")) {
+                    switch (risposta.split(" ")[1]) {
+                        case "ADDFRIENDOK" :
+                            System.out.println(">> CLIENT >> AddFriend >> Amicizia creata con successo.");
+                            return 1;
+                        case "ADDFRIENDERR1" : // uno dei due username non esiste
+                        System.out.println(">> CLIENT >> AddFriend >> Uno dei due username non esiste.");
+                            return -1;
+                        case "ADDFRIENDERR2" : // la relazione di amicizia è già esistente
+                        System.out.println(">> CLIENT >> AddFriend >> La relazione di amicizia è già presente nel database.");
+                            return -2;
+                        case "ADDFRIENDERR3" : // se nickUtente e nickAmico sono lo stesso username
+                        System.out.println(">> CLIENT >> AddFriend >> I due username sono uguali.");
+                            return -3;
+                        default : 
+                            return 0;
+                    }
+
+                }
+
+            }
+            return 1;
+        } catch (IOException e) {
+            System.out.println(">> CLIENT >> Send >> " + e.getMessage());
+        }
+        return 0;
+    }
+
     /**
      * Elabora comandi ricevuti dal server.
      * @param received la stringa comando mandata dal server
-     * @return 0 se la stringa è elaborata con successo, -1 se la stringa è formattata male
+     * @return 1 se la stringa è elaborata con successo, 0 se la stringa è formattata male
      */
     public int receive(String received) {
         // il server invia comandi del tipo "comando informazioni"
         if(received.isEmpty() || received.isBlank() || received == null) {
             System.out.println(">> CLIENT >> Stringa comando ricevuta dal server formattata male.");
-            return -1;
+            return 0;
         }
         else {
+            // System.out.println(">> CLIENT >> comando ricevuto >> " + received);
             String comando = received.split(" ")[0];
             switch (comando) {
-                case "answer" :
-                    System.out.println(received);
+                case "online" :
+                    String amiciOnline = received.substring(comando.length()+1);
+                    // System.out.println(">> CLIENT >> amici online >> " + amiciOnline);
+                    WQClientLink.gui.updateOnlineFriends(amiciOnline);
+                    return 1;
+
+                case "points" :
+
+
+                default : 
                     return 0;
 
 
-                default :
-                    return -1;
             }
-
         }
+        
     }
     
     public static void main(final String[] args) {

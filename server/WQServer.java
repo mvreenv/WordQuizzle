@@ -53,7 +53,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     private HashMap<String, WQUser> userDB; 
 
     /**
-     * Mappa degli utenti collegati, come chiave si usa lo username dell'utente. FIX CI VA WQManager
+     * Mappa dei client collegati, come chiave si usa lo username dell'utente loggato nel client.
      */
     private HashMap<String, WQManager> onlineUsers;
 
@@ -221,32 +221,37 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
     public void logout(String nickUtente) {
         this.onlineUsers.remove(nickUtente);
-        System.out.println(">> Logout: " + nickUtente + " logout effettuato con successo.");
+        // System.out.println(">> Logout: " + nickUtente + " logout effettuato con successo.");
     }
 
     /**
      * Aggiunge nickAmico alla lista amici di nickUtente.
      */
     public int aggiungiAmico(String nickUtente, String nickAmico) {
-        // uno dei due username non esiste
-        if(userDB.get(nickUtente)==null || userDB.get(nickAmico)==null) {
-            System.out.println(">> Tentativo amicizia: uno dei due utenti non esiste.");
-            return -1;
-        }     // la relazione di amicizia è già presente nel database
-        else if(userDB.get(nickUtente).friends.contains(nickAmico)) {
-            System.out.println(">> Tentativo amicizia: " + nickAmico + " è già tra gli amici di " + nickUtente + ".");
-            return -2;
+        // controllo che nickUtente e nickAmico non siano uguali uguali
+        if(!nickUtente.equals(nickAmico)) { 
+            // uno dei due username non esiste
+            if(userDB.get(nickUtente).equals(null)|| userDB.get(nickAmico).equals(null)) {
+                System.out.println(">> SERVER >> Tentativo amicizia: uno dei due utenti non esiste.");
+                return -1;
+            }     
+            // la relazione di amicizia è già presente nel database
+            else if(userDB.get(nickUtente).friends.contains(nickAmico)) {
+                System.out.println(">> SERVER >> Tentativo amicizia: " + nickAmico + " è già tra gli amici di " + nickUtente + ".");
+                return -2;
+            }
+            // creo la relazione di amicizia
+            userDB.get(nickUtente).friends.add(nickAmico);
+            this.saveServer();
+            System.out.println(">> SERVER >> Amicizia: " + nickAmico + " è ora nella lista amici di " + nickUtente + ".");
+            return 0;
         }
-        // nickUtente e nickAmico sono uguali
-        else if(nickUtente.equals(nickAmico)) {
-            System.out.println(">> Tentativo amicizia: i due username sono uguali.");
+        else {
+            System.out.println(">> SERVER >> Tentativo amicizia: i due username sono uguali.");
             return -3;
         }
-        // creo la relazione di amicizia
-        userDB.get(nickUtente).friends.add(nickAmico);
-        this.saveServer();
-        System.out.println(">> Amicizia: " + nickAmico + " è ora nella lista amici di " + nickUtente + ".");
-        return 0;
+
+        
     }
 
     /**
@@ -406,23 +411,27 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     }
     
     /**
-     * Stampa sul terminale del server la lista degli utenti online.
+     * Stampa sul terminale del server la lista degli utenti online e restituisce la lista in formato Json.
      * @return la lista degli utenti online in formato JSON
      */
-    public String usersOnline() {
-        ArrayList<WQUser> connessi = new ArrayList<>();
-        for (String utente : onlineUsers.keySet()) {
-            connessi.add(userDB.get(utente));
+    public ArrayList<String> usersOnline(String user) {
+        ArrayList<String> connessi = new ArrayList<>();
+        if (user == null) { // voglio la lista di tutti gli utenti online
+            
+            for (String utente : onlineUsers.keySet()) {
+                connessi.add(userDB.get(utente).username);
+                // System.out.println(" " + userDB.get(utente).username);
+            }
+            return connessi;
         }
-        
-        System.out.print(">> Utenti online: ");
-        for(int i=0; i<connessi.size(); i++) {
-            System.out.print(connessi.get(i).username + ", ");
+        else {
+            for (String utente : onlineUsers.keySet()) {
+                if (userDB.get(user).friends.contains(utente)) {
+                    connessi.add(userDB.get(utente).username);
+                }
+            }
+            return connessi;
         }
-        System.out.println();
-
-        Gson amici = new Gson();
-        return amici.toJson(connessi.toArray());
     }
 
     /**

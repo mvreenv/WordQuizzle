@@ -1,6 +1,8 @@
 package server;
 
 import java.io.IOException;
+import java.io.StringReader;
+import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -10,6 +12,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+
+import common.WQUser;
 
 /**
  * Gestore della comunicazione col server della singola istanza client.
@@ -121,22 +127,20 @@ public class WQManager implements Runnable {
                         String received = StandardCharsets.UTF_8.decode(buffer).toString();
                         String comando = received.split(" ")[0];
 
-                        System.out.println(">> MANAGER >> Received command: " + comando + " " + received.split(" ")[1] + " " + received.split(" ")[2]); // test
-
                         // comandi che vengono inviati dalle istanze client al server
                         switch (comando) {
                             case "login" :
                                 if(this.username == null) {
                                     String user = received.split(" ")[1];
                                     String pw = received.split(" ")[2];
-                                    System.out.println(">> MANAGER >> Verifica " + user + pw);
+                                    System.out.println(">> MANAGER >> Verifica credenziali " + user + " " + pw);
                                     int result = this.server.login(user, pw, this);
                                     // login effettuato con successo
                                     if(result == 0) { 
                                         this.username=user;
 
                                         // invio la risposta positiva
-                                        messaggio = "answer OK";
+                                        messaggio = "answer LOGINOK";
                                         ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                         do {
                                             n = ((SocketChannel)key.channel()).write(buf);
@@ -201,12 +205,69 @@ public class WQManager implements Runnable {
                                     } while (n>0);
                                 }
                                 break;
+
                             case "aggiungi_amico" :
+                                System.out.println(">> MANAGER >> verifica aggiungi_amico " + received.split(" ")[1] + " " + received.split(" ")[2]);
+                                int result = this.server.aggiungiAmico(received.split(" ")[1], received.split(" ")[2]);
+                                if (result==0) { // la registrazione dell'amicizia è avvenuta
+                                    messaggio = "answer ADDFRIENDOK";
+                                    ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
+                                    do {
+                                        n = ((SocketChannel)key.channel()).write(buf);
+                                    } while (n>0);
+                                }
+                                else if (result==-1) { // uno dei due username non esiste
+                                    messaggio = "answer ADDFRIENDERR1";
+                                    ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
+                                    do {
+                                        n = ((SocketChannel)key.channel()).write(buf);
+                                    } while (n>0);
+                                }
+                                else if (result==-2) { // la relazione di amicizia è già esistente
+                                    messaggio = "answer ADDFRIENDERR2";
+                                    ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
+                                    do {
+                                        n = ((SocketChannel)key.channel()).write(buf);
+                                    } while (n>0);
+                                }
+                                else if (result==-3) { // se nickUtente e nickAmico sono lo stesso username
+                                    messaggio = "answer ADDFRIENDERR3";
+                                    ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
+                                    do {
+                                        n = ((SocketChannel)key.channel()).write(buf);
+                                    } while (n>0);
+                                }
 
                                 break;
-                            case "online" :
 
+                            case "online" : 
+                                System.out.println(">> MANAGER >> verifica amici online di " + username);
+                                ArrayList<String> amiciOnline = this.server.usersOnline(username);
+                                messaggio = "online "; // formato : online amico1 amico2 ...
+                                for(int i=0; i<amiciOnline.size(); i++) {
+                                    messaggio = messaggio + amiciOnline.get(i) + " ";
+                                }
+                                send(messaggio);
                                 break;
+
+                            case "friendlist" :
+                            System.out.println(">> MANAGER >> recupero lista completa amici di " + username);
+                                messaggio = "friendlist " + this.server.lista_amici(username);
+                                send(messaggio);
+                                break;
+                            
+                            case "leaderboard" :
+                                System.out.println(">> MANAGER >> recupero classifica amici di " + username);
+                                messaggio = "leaderboard " + this.server.mostra_classifica(username);
+                                send(messaggio);
+                                break;
+
+                            case "userpoints" :
+                                System.out.println(">> MANAGER >> recupero il punteggio di " + username);
+                                messaggio = "userpoints " + this.server.getUser(received.split(" ")[1]).points;
+                                send(messaggio);
+                                break;
+                            
                         }
 
                     }
@@ -216,13 +277,13 @@ public class WQManager implements Runnable {
             } while(isOnline);
             
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            System.out.println(e.getMessage());
+            // e.printStackTrace();
         }
 
-        // if (this.username != null) {
-        //     System.out.println(">> Manager >> " + this.username + " è andato offline.");
-        //     this.server.logout(username);
-        // }
+        if (this.username != null) {
+            System.out.println(">> MANAGER >> " + this.username + " è andato offline.");
+            this.server.logout(username);
+        }
     }
 }
