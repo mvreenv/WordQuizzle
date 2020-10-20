@@ -3,6 +3,7 @@ package client;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -13,6 +14,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
+import java.util.Timer;
 
 import common.WQInterface;
 import common.WQUser;
@@ -39,6 +41,16 @@ public class WQClient {
      * Chiave per la comunicazione.
      */
     private SelectionKey key;
+
+    /**
+     * Suffisso per i messaggi da mandare, utilizzato per le risposte durante la sfida.
+     */
+    private String suffisso = "";
+    
+    /**
+     * Timer per il tempo di invio di una traduzione durante la sfida.
+     */
+    private Timer translationTimer;
 
     /**
      * Costruttore del client.
@@ -138,6 +150,24 @@ public class WQClient {
                         new Thread(new WQClientReceiver(socket, key)).start();
 
                         // avvio il listener UDP 
+                        try {
+                            DatagramSocket datagramSocket = new DatagramSocket();
+                            new Thread(new WQClientDatagramReceiver(datagramSocket)).start();
+                            string = "challengePort " + datagramSocket.getLocalPort();
+                            buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
+                            do { 
+                                n = ((SocketChannel) key.channel()).write(buf); 
+                            } while (n > 0);
+                            System.out.println(">> CLIENT >> Listener UDP su porta " + datagramSocket.getLocalPort());
+                        } catch (Exception e) {
+                            string = "challengePort -1";
+                            buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
+                            do { 
+                                n = ((SocketChannel) key.channel()).write(buf); 
+                            } while (n > 0);
+                            System.out.println(">> CLIENT >> Errore avvio Listener UDP " + e.getMessage());
+                        }
+
                         return 0;
 
                     }
@@ -163,28 +193,36 @@ public class WQClient {
     }
 
     public void logout(String username) {
+        WQClientLink.gui.setUser(null, 0);
         try {
             this.socket.close();
         } catch (IOException e) {}
-        //this.socket = null;
+        this.socket = null;
         System.out.println(">> CLIENT >> " + username + " si è disconnesso." );
 
     }
 
     /**
      * Invia comandi al server.
-     * @return 1 l'invio ha avuto successo, 0 se c'è IOException, -1 se 
+     * @return 1 l'invio ha avuto successo, 0 se c'è IOException
      */
     public int send(String message) {
         try {
             ByteBuffer buffer = ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8));
+
+            if (suffisso.equals("challengeanswer")) {
+                translationTimer.cancel();
+                translationTimer = null;
+            }
+            suffisso = "";
+
             int n;
             do {
                 n = ((SocketChannel)key.channel()).write(buffer);
             } while (n>0);
 
             // messaggi di risposta per aggiungi_amico per dare feedback all'utente tramite gui client
-            if(message.split(" ")[0].equals("aggiungi_amico")) {
+            if(message.split(" ")[0].equals("addfriend")) {
                 buffer.clear();
                 buffer = ByteBuffer.allocate(1024);
                 do {
@@ -199,6 +237,7 @@ public class WQClient {
                     switch (risposta.split(" ")[1]) {
                         case "ADDFRIENDOK" :
                             System.out.println(">> CLIENT >> AddFriend >> Amicizia creata con successo.");
+                            send("online"); // aggiorno la lista degli amici online in caso l'utente appena aggiunto sia collegato per mostrarlo nella lista
                             return 1;
                         case "ADDFRIENDERR1" : // uno dei due username non esiste
                         System.out.println(">> CLIENT >> AddFriend >> Uno dei due username non esiste.");
@@ -238,14 +277,67 @@ public class WQClient {
             // System.out.println(">> CLIENT >> comando ricevuto >> " + received);
             String comando = received.split(" ")[0];
             switch (comando) {
+                case "answer" :
+                    if(received.contains("challenge")) { // messaggi di inizio e fine sfida
+                        // recupero i punti ottenuti
+                        int points = Integer.parseInt(received.split(" ")[2]);
+
+                        // sfida vinta
+                        if (received.split(" ")[1].equals("challengewon")) {
+                            System.out.println(">> CLIENT >> Hai vinto la sfida e sei a " + points + " punti.");
+                        }
+                        else if (received.split(" ")[1].equals("challengelost")) {
+                            System.out.println(">> CLIENT >> Hai perso la sfida e sei a " + points + " punti.");
+                        }
+                        else if (received.split(" ")[1].equals("challengetie")) {
+                            System.out.println(">> CLIENT >> Hai pareggiato la sfida e sei a " + points + " punti.");
+                        }
+
+                        // aggiorno i punti sulla GUI
+                        WQClientLink.gui.setPoints(points);
+
+                    }
+                    else { // le altre stringhe le stampo sul terminale
+                        System.out.println(">> CLIENT >> " + received);
+                    }
+                    return 0;
+
                 case "online" :
                     String amiciOnline = received.substring(comando.length()+1);
-                    // System.out.println(">> CLIENT >> amici online >> " + amiciOnline);
+                    System.out.println(">> CLIENT receive >> amici online >> " + amiciOnline);
                     WQClientLink.gui.updateOnlineFriends(amiciOnline);
                     return 1;
 
-                case "points" :
+                case "userpoints" :
+                    int n = Integer.parseInt(received.split(" ")[1]);
+                    System.out.println(">> CLIENT receive >> punti utente >> " + received.split(" ")[1]);
+                    WQClientLink.gui.setPoints(n);
+                    return 1;
 
+                case "challengeround" : // messaggi che arrivano durante una sfida
+                    String parola = received.split(" ")[1];
+
+                    if (parola.equals("1")) { // inizio sfida
+                        System.out.println(">> CLIENT >> Sfida iniziata.");
+                        WQClientDatagramReceiver.sfidaInCorso = true;
+                    }
+                    else if (parola.equals("-1")) { // fine sfida (errore)
+                        System.out.println(">> CLIENT >> Errore. Sfida terminata.");
+                        WQClientDatagramReceiver.sfidaInCorso = false;
+                    }
+                    else if (parola.equals("-2")) { // sfida rifiutata
+                        System.out.println(">> CLIENT >> Sfida rifiutata.");
+                    }
+                    else if (parola.equals("-3")) { // fine sfida
+                        System.out.println(">> CLIENT >> Sfida completata.");
+                        WQClientDatagramReceiver.sfidaInCorso = false;
+                    }
+                    else { // parola da tradurre per la sfida
+                        System.out.println(">> CLIENT >> Parola da tradurre: " + parola);
+                        suffisso = "challengeanswer ";
+                        translationTimer = new Timer();
+                        translationTimer.schedule(new WQClientTimerTask(this), 5000);
+                    }
 
                 default : 
                     return 0;

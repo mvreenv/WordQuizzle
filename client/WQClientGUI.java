@@ -8,6 +8,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
@@ -103,10 +104,12 @@ public class WQClientGUI {
 			public void windowOpened(WindowEvent e) {}
 
 			@Override
-			public void windowClosing(WindowEvent e) { WQClientLink.client.logout(username); }
+			public void windowClosing(WindowEvent e) { 
+                if (username!=null) WQClientLink.client.logout(username); 
+            }
 
 			@Override
-            public void windowClosed(WindowEvent e) { WQClientLink.client.logout(username); }
+            public void windowClosed(WindowEvent e) { }
 
 			@Override
 			public void windowIconified(WindowEvent e) {}
@@ -147,10 +150,12 @@ public class WQClientGUI {
                 if (n==0) { // login avvenuto con successo
                     JOptionPane.showMessageDialog(frame, "Login avvenuto con successo!");
                     WQClientLink.client.send("online"); // chiedo al server la lista aggiornata degli utenti online
+                    usernameInput.setText(""); // svuoto l'input username
+                    passwordInput.setText(""); // svuoto l'input password
                     frame.invalidate();
                     frame.remove(loginPanel);
-                    frame.add(topPanel);
-                    frame.add(settingsPanel);
+                    frame.add(topPanel, BorderLayout.NORTH);
+                    frame.add(settingsPanel, BorderLayout.CENTER);
                     frame.revalidate();
                     frame.repaint();
                 }
@@ -245,7 +250,7 @@ public class WQClientGUI {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 String friendName = JOptionPane.showInputDialog(frame, "Chi vuoi aggiungere come amico?", null);
-                int n = WQClientLink.client.send("aggiungi_amico " + username + " " + friendName);
+                int n = WQClientLink.client.send("addfriend " + username + " " + friendName);
                 if (n==1) JOptionPane.showMessageDialog(frame, friendName + " aggiunto alla tua lista amici.", "Amico", JOptionPane.INFORMATION_MESSAGE);
                 else if (n==0) JOptionPane.showMessageDialog(frame, "Errore formattazione dati.", "Errore amicizia.", JOptionPane.ERROR_MESSAGE);
                 else if (n==-1) JOptionPane.showMessageDialog(frame, "Uno dei due utenti non esiste.", "Errore amicizia.", JOptionPane.ERROR_MESSAGE);
@@ -254,13 +259,23 @@ public class WQClientGUI {
             }
         });
         settingsPanelConstraints.gridx = 0;
-        settingsPanelConstraints.gridy = 1;
+        settingsPanelConstraints.gridy = 0;
         settingsPanelConstraints.insets.bottom = 10;
         settingsPanel.add(addFriendButton, settingsPanelConstraints);
 
         challengeFriendButton = new JButton("Sfida amico");
+        challengeFriendButton.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                String friendName = JOptionPane.showInputDialog(frame, "Chi vuoi sfidare?", null);
+                int n = WQClientLink.client.send("challenge " + friendName);
+                if (n==1) JOptionPane.showMessageDialog(frame, "Sfida inviata.", "Invio sfida.", JOptionPane.INFORMATION_MESSAGE);
+                if (n==0) JOptionPane.showMessageDialog(frame, "Errore invio sfida.", "Invio sfida.", JOptionPane.ERROR_MESSAGE);
+                
+            }
+        });
         settingsPanelConstraints.gridx = 0;
-        settingsPanelConstraints.gridy = 2;
+        settingsPanelConstraints.gridy = 1;
         settingsPanel.add(challengeFriendButton, settingsPanelConstraints);
 
         showLeaderboardButton = new JButton("Mostra classifica");
@@ -272,7 +287,7 @@ public class WQClientGUI {
             }
         });
         settingsPanelConstraints.gridx = 0;
-        settingsPanelConstraints.gridy = 3;
+        settingsPanelConstraints.gridy = 2;
         settingsPanel.add(showLeaderboardButton, settingsPanelConstraints);
 
         showFriendListButton = new JButton("Lista completa amici");
@@ -284,19 +299,25 @@ public class WQClientGUI {
             }
         });
         settingsPanelConstraints.gridx = 0;
-        settingsPanelConstraints.gridy = 4;
+        settingsPanelConstraints.gridy = 3;
         settingsPanel.add(showFriendListButton, settingsPanelConstraints);
         
-        logoutButton = new JButton("Aggiorna amici online");
+        logoutButton = new JButton("Logout");
         logoutButton.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                int n = WQClientLink.client.send("online " + WQClientLink.gui.username);
-                if (n==0) JOptionPane.showMessageDialog(frame, "Errore amici online.", "Errore.", JOptionPane.ERROR_MESSAGE);
+                WQClientLink.client.logout(WQClientLink.gui.username);
+                frame.invalidate();
+                frame.remove(settingsPanel);
+                frame.remove(topPanel);
+                frame.add(loginPanel, BorderLayout.CENTER);
+                frame.revalidate();
+                frame.repaint();
+
             }
         });
         settingsPanelConstraints.gridx = 0;
-        settingsPanelConstraints.gridy = 5;
+        settingsPanelConstraints.gridy = 4;
         settingsPanelConstraints.insets.top = 0;
         settingsPanelConstraints.insets.bottom = 0;
         settingsPanel.add(logoutButton, settingsPanelConstraints);
@@ -304,18 +325,21 @@ public class WQClientGUI {
         JLabel labelAmiciOnline = new JLabel("Amici online");
         settingsPanelConstraints.gridx = 1;
         settingsPanelConstraints.gridy = 0;
-        settingsPanelConstraints.insets.left = 10;
+        settingsPanelConstraints.insets.left = 50;
         settingsPanel.add(labelAmiciOnline, settingsPanelConstraints);
 
         textAreaAmiciOnline = new JTextArea();
+        textAreaAmiciOnline.setMargin(new Insets(10,10,10,10));
+        textAreaAmiciOnline.setBackground(Color.GRAY);
+        textAreaAmiciOnline.setForeground(Color.WHITE);
         textAreaAmiciOnline.setAutoscrolls(true);
         textAreaAmiciOnline.setEditable(false);
         textAreaAmiciOnline.setLineWrap(true);
-        textAreaAmiciOnline.setPreferredSize(new Dimension(150, 170));
+        textAreaAmiciOnline.setPreferredSize(new Dimension(100, 170));
         settingsPanelConstraints.gridx = 1;
         settingsPanelConstraints.gridy = 1;
-        settingsPanelConstraints.gridheight = 5;
-        settingsPanelConstraints.insets.left = 10;
+        settingsPanelConstraints.gridheight = 4;
+        settingsPanelConstraints.insets.left = 50;
         settingsPanel.getLayout().preferredLayoutSize(frame);
         settingsPanel.add(textAreaAmiciOnline, settingsPanelConstraints);
         
@@ -327,7 +351,7 @@ public class WQClientGUI {
         GridBagConstraints challengePanelConstraints = new GridBagConstraints();
         challengePanelConstraints.fill = GridBagConstraints.HORIZONTAL;
 
-        JLabel challengerLabel = new JLabel("Challenge vs. " + challenger);
+        JLabel challengerLabel = new JLabel("Sfida contro " + challenger);
         challengePanelConstraints.gridx = 0;
         challengePanelConstraints.gridy = 0;
         challengePanel.add(challengerLabel, challengePanelConstraints);
@@ -340,7 +364,7 @@ public class WQClientGUI {
         challengePanelConstraints.gridy = 0;
         challengePanel.add(challengeTimer, challengePanelConstraints);
 
-        JLabel matchScore = new JLabel("Match score: 12");
+        JLabel matchScore = new JLabel("Punteggio partita: 12");
         matchScore.setAlignmentX(JLabel.CENTER_ALIGNMENT);
         challengePanelConstraints.gridx = 1;
         challengePanelConstraints.gridy = 1;
@@ -364,7 +388,7 @@ public class WQClientGUI {
         challengePanelConstraints.gridwidth = 3;
         challengePanel.add(translationInput, challengePanelConstraints);
 
-        translateButton = new JButton("Translate");
+        translateButton = new JButton("Traduci");
         translateButton.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -410,15 +434,29 @@ public class WQClientGUI {
 
     }
 
-    public void setPoints(int punti) {
-        this.points = punti;
-        this.pointsLogged.setText(Integer.toString(punti));
+    public int challengeDialog(String sfidante) {
+
+        return JOptionPane.showConfirmDialog(frame, sfidante + " ti sta sfidando!");
     }
 
-    
+    /**
+     * Imposta il valore dei punti.
+     */
+    public void setPoints(int punti) {
+        this.points = punti;
+        this.pointsLogged.setText("Punti: " + Integer.toString(punti));
+    }
+
+    /**
+     * Imposta username e punti dell'utente collegato con questo client.
+     * @param user username
+     * @param p punti accumulati fino ad ora
+     */    
     public void setUser(String user, int p) {
         this.username = user;
         this.points = p;
+        this.userLogged.setText(user);
+        this.pointsLogged.setText("Punti: " + Integer.toString(p));
     }
 
     /**

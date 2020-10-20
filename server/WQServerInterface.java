@@ -41,9 +41,8 @@ public interface WQServerInterface {
      * Invia una richiesta di sfida da parte di un utente ad un altro.
      * @param nickUtente Username dell'utente che richiede la sfida.
      * @param nickAmico Username dell'utente che viene sfidato.
-     * @return Codice di errore in caso l'utente sfidato non sia nella lista di amici dello sfidante.
      */
-    public int sfida(String nickUtente, String nickAmico);
+    public void sfida(String nickUtente, String nickAmico);
 
     /**
      * Restituisce il punteggio dell'utente specificato.

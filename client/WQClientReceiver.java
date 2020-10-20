@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Thread listener dei messaggi TCP in arrivo dal server.
  */
+
 public class WQClientReceiver implements Runnable {
 
     /**
@@ -56,7 +57,7 @@ public class WQClientReceiver implements Runnable {
             } while (socket.isConnected());
                
         } catch (IOException e) {
-            System.out.println(">> CLIENT TCP RECEIVER >> " + e.getMessage());
+            System.out.println(">> CLIENT TCP RECEIVER >> EXCEPTION >> " + e.getMessage());
             e.printStackTrace();
         }
     

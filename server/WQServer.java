@@ -81,7 +81,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             serverSocket = ServerSocketChannel.open();
             serverSocket.socket().bind(new InetSocketAddress(porta));
             serverSocket.configureBlocking(false);
-            System.out.println(">> Il server WordQuizzle è online! (digita \"help\" per vedere la lista dei comandi)");
+            System.out.println(">> Il server WordQuizzle è online!");
 
             // listener per input comandi 
             Scanner scanner = new Scanner(System.in);
@@ -203,6 +203,21 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                 // controllo che la password sia corretta
                 if(userDB.get(nickUtente).password.equals(password)) {
                     onlineUsers.put(nickUtente, manager);
+
+                    for (String onlineuser : onlineUsers.keySet()) {
+                        if (userDB.get(nickUtente).friends.contains(onlineuser)) {
+                            
+                            ArrayList<String> amiciOnline = usersOnline(onlineuser);
+                            String messaggio = "online "; // formato : online amico1 amico2 ...
+                            for(int i=0; i<amiciOnline.size(); i++) {
+                                messaggio = messaggio + amiciOnline.get(i) + " ";
+                            }
+                            onlineUsers.get(onlineuser).send(messaggio);
+
+                        }
+                    }
+
+
                     return 0; // login eseguito con successo
                 }
                 
@@ -221,6 +236,18 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
     public void logout(String nickUtente) {
         this.onlineUsers.remove(nickUtente);
+        for (String onlineuser : onlineUsers.keySet()) {
+            if (userDB.get(nickUtente).friends.contains(onlineuser)) {
+                
+                ArrayList<String> amiciOnline = usersOnline(onlineuser);
+                String messaggio = "online "; // formato : online amico1 amico2 ...
+                for(int i=0; i<amiciOnline.size(); i++) {
+                    messaggio = messaggio + amiciOnline.get(i) + " ";
+                }
+                onlineUsers.get(onlineuser).send(messaggio);
+
+            }
+        }
         // System.out.println(">> Logout: " + nickUtente + " logout effettuato con successo.");
     }
 
@@ -245,7 +272,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             this.saveServer();
             System.out.println(">> SERVER >> Amicizia: " + nickAmico + " è ora nella lista amici di " + nickUtente + ".");
             return 0;
-        }
+        } 
         else {
             System.out.println(">> SERVER >> Tentativo amicizia: i due username sono uguali.");
             return -3;
@@ -284,11 +311,153 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         return amici.toJson(list.toArray());
     }
 
-    public int sfida(String nickUtente, String nickAmico) {
-        // TODO Auto-generated method stub
-        return 0;
+    /**
+     * Invia una richiesta di sfida da parte di un utente ad un altro.
+     */
+    public void sfida(String nickUtente, String nickAmico) {
+
+        if(userDB.containsKey(nickAmico)) { // controllo che nickAmico sia nel database
+
+            if(userDB.get(nickUtente).friends.contains(nickAmico)) { // controllo che nickUtente e nickAmico siano amici
+
+                if(onlineUsers.containsKey(nickAmico)) { // controllo che nickAmico sia online
+
+                    DatagramSocket datagramSocket = onlineUsers.get(nickAmico).challenge(nickUtente, this.port);
+
+                    if(datagramSocket!=null) { // la richiesta è stata accettata
+
+                        // segnalo inizio sfida
+                        System.out.println(">> SERVER >> Inizio sfida fra " + nickUtente + " e " + nickAmico);
+                        WQManager managerUtente = onlineUsers.get(nickUtente);
+                        managerUtente.send("challengeround 1");
+                        WQManager managerAmico = onlineUsers.get(nickAmico);
+                        managerAmico.send("challengeround 1");
+
+                        try {
+
+                            // leggo la lista di parole dal dizionario
+                            BufferedReader lettoreDizionario = new BufferedReader(new FileReader(new File("dizionario.txt")));
+                            ArrayList<String> dizionario = new ArrayList<>();
+                            String riga;
+                            while ( (riga = lettoreDizionario.readLine()) != null ) {
+                                dizionario.add(riga);
+                            }
+                            lettoreDizionario.close();
+
+                            int K = 10; // numero di parole da tradurre per la sfida K
+                            HashMap<String, ArrayList<String>> paroleSfida = new HashMap<>();
+                            Collections.shuffle(dizionario); // randomizzo l'ordine delle parole nel dizionario
+                            for(int i=0; i<K; i++){
+                                String parola = dizionario.get(i);
+
+                                // Searches MyMemory for matches against a segment.
+                                // Call example: https://api.mymemory.translated.net/get?q=Hello World!&langpair=en|it
+                                // parameter q (mandatory) 
+                                //      - The sentence you want to translate. Use UTF-8. 
+                                //      - example value: Hello World!
+                                // parameter langpair (mandatory) 
+                                //      - Source and language pair, separated by the | symbol. Use ISO standard names or RFC3066
+                                //      - example value: en|it 
+
+                                URL url = new URL("https://api.mymemory.translated.net/get?q=" + parola + "&langpair=it|en");
+                                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                                connection.setRequestMethod("GET");
+                                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                                String inputLine;
+                                StringBuilder content = new StringBuilder();
+                                while ((inputLine = in.readLine()) != null) {
+                                    content.append(inputLine);
+                                }
+                                in.close();
+
+                                // ricevo un oggetto in formato JSON con un campo "matches" contenente le possibili traduzioni della parola
+                                JsonElement json = new JsonParser().parse(content.toString());
+                                JsonArray listaTraduzioni = json.getAsJsonObject().get("matches").getAsJsonArray();
+                                ArrayList<String> traduzioni = new ArrayList<>();
+                                for (JsonElement match : listaTraduzioni) {
+                                    String translation = match.getAsJsonObject().get("translation").getAsString()
+                                            .toLowerCase()
+                                            .replaceAll("!", "")
+                                            .replaceAll("\\.", "")
+                                            .replaceAll("-", "");
+                                    traduzioni.add(translation);
+                                }
+                                paroleSfida.put(parola, traduzioni);
+                                System.out.print(parola + ":");
+                                for (String tr : traduzioni) System.out.print(" " + tr);
+                                System.out.println();
+                            }
+                            // avvio il thread arbitro della sfida
+                            new Thread(new WQReferee(managerUtente,managerAmico,this,paroleSfida)).start();
+
+                        } catch (IOException e) {
+                            System.out.println(">> SERVER >> Dizionario non trovato.");
+                        }
+
+
+                    }
+
+                    else { // sfida rifiutata, utente già occupato o timer scaduto
+                        WQManager sfidante = onlineUsers.get(nickUtente);
+                        sfidante.send("challengeround -2");
+                    }
+                }
+                else { // nickAmico non è online
+                    WQManager sfidante = onlineUsers.get(nickUtente);
+                    sfidante.send("challengeround -2");
+                }
+            }
+            else { // nickUtente e nickAmico non sono amici
+                WQManager sfidante = onlineUsers.get(nickUtente);
+                sfidante.send("challengeround -2");
+            }
+        }
+        else { // nickAmico non è nel database
+            WQManager sfidante = onlineUsers.get(nickUtente);
+            sfidante.send("challengeround -2");
+        }
     }
 
+     /**
+      * Conclude la sfida fra user1 e user2 e aggiorna i loro punteggi.
+      */
+    public void fineSfida(WQManager user1, int puntiUtente1, WQManager user2, int puntiUtente2) {
+
+        // recupero gli oggetti utente dai gestori
+        WQUser utente1 = userDB.get(user1.username); 
+        WQUser utente2 = userDB.get(user2.username);
+        
+        // aggiorno i punteggi con i punti guadagnati durante la sfida
+        utente1.points += puntiUtente1;
+        utente2.points += puntiUtente2;
+        
+        // assegno il bonus vittoria e invio i messaggi di fine sfida ai client (bonus vittoria Z = +3)
+        
+        if ( puntiUtente1 > puntiUtente2 ) { // ha vinto user1
+            utente1.points += 3;
+            user1.send("answer challengewon " + utente1.points);
+            user2.send("answer challengelost " + utente2.points);
+        }
+
+        else if ( puntiUtente2 > puntiUtente1 ) { // ha vinto user2
+            utente2.points += 3;
+            user2.send("answer challengewon " + utente2.points);
+            user1.send("answer challengelost " + utente1.points);
+        }
+
+        else { // pareggio
+            user1.send("answer challengetie " + utente1.points);
+            user2.send("answer challengetie  " + utente2.points);
+        }
+
+        // salvo i dati del server
+        saveServer();
+
+    }
+
+    /**
+     * Restituisce il punteggio dell'utente specificato.
+     */
     public int mostra_punteggio(String nickUtente) {
         System.out.println(">> Punteggio di " + nickUtente + ": " + userDB.get(nickUtente).points);
         return userDB.get(nickUtente).points;
@@ -412,6 +581,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     
     /**
      * Stampa sul terminale del server la lista degli utenti online e restituisce la lista in formato Json.
+     * @param user se è non null mostra i suoi amici online
      * @return la lista degli utenti online in formato JSON
      */
     public ArrayList<String> usersOnline(String user) {

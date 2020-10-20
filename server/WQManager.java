@@ -3,6 +3,13 @@ package server;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.Type;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -15,11 +22,13 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
+import client.WQClientLink;
 import common.WQUser;
 
 /**
  * Gestore della comunicazione col server della singola istanza client.
  */
+
 public class WQManager implements Runnable {
 
     /**
@@ -40,31 +49,37 @@ public class WQManager implements Runnable {
     /**
      * Indica lo stato del gestore.
      */
-    private boolean isOnline;
+    public boolean isOnline;
 
     /**
      * Userame dell'utente gestito da questo gestore.
      */
-    private String username;
+    public String username;
 
     /**
      * Numero di porta per la sfida.
      */
-    private int portaSfida;
+    public int portaSfida;
 
     /**
      * Flag che indica se c'è una sfida in corso.
      */
-    private boolean isPlaying;
+    public boolean isPlaying;
 
     /**
-     * Lista delle parole da tradurre per la sfida, finché non c'è una sfida in corso è null.
+     * Lista delle parole da tradurre per la sfida, finché non c'è una sfida in
+     * corso è null.
      */
-    private HashMap<String, ArrayList<String>> words;
-
+    public HashMap<String, ArrayList<String>> words;
 
     /**
-     * Costruttore. 
+     * Punti ottenuti durante una sifda.
+     */
+    public int matchPoints;
+
+    /**
+     * Costruttore.
+     * 
      * @param srv riferimento al server
      * @param skt canale di comunicazione
      */
@@ -76,6 +91,7 @@ public class WQManager implements Runnable {
 
     /**
      * Invia il messaggio msg al client.
+     * 
      * @param str Il testo da spedire
      */
     public void send(String msg) {
@@ -85,7 +101,112 @@ public class WQManager implements Runnable {
             do {
                 n = ((SocketChannel) key.channel()).write(buf);
             } while (n > 0);
-        } catch(Exception e) {}
+        } catch (Exception e) {
+        }
+    }
+
+    /**
+     * Invia tramite UDP la sfida da parte di nickSfidante
+     */
+    public DatagramSocket challenge(String nickSfidante, int porta) {
+
+        DatagramSocket datagramSocket;
+        
+        try {
+            datagramSocket = new DatagramSocket();
+            datagramSocket.connect(InetAddress.getByName("127.0.0.1"), this.portaSfida);
+            // channel.connect(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), porta));
+            datagramSocket.setSoTimeout(10000); // timeout della sfida T1 = 10 secondi
+            byte[] buffer = ("challengerequest " + nickSfidante).getBytes(StandardCharsets.UTF_8);
+            DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
+            datagramSocket.send(datagramPacket);
+
+            try {
+                buffer = new byte[256];
+                datagramPacket = new DatagramPacket(buffer, buffer.length);
+                datagramSocket.receive(datagramPacket);
+                String ricevuta = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString();
+                // ricevo 'challengeresponse OK', 'challengeresponse NO' o 'challengeresponse BUSY'
+                String risposta = ricevuta.split(" ")[1];
+                if("OK".equals(risposta)) {
+                    System.out.println(">> MAANGER >> " + this.username + " ha accettato la sfida.");
+                    return datagramSocket;
+                }
+                else if ("BUSY".equals(risposta)) {
+                    System.out.println(">> MAANGER >> " + this.username + " è già occupato in un'altra sfida.");
+                    return null;
+                }
+                else { //"NO"
+                    System.out.println(">> MAANGER >> " + this.username + " ha rifiutato la sfida.");
+                    return null;
+                }
+
+            } catch (SocketTimeoutException e) { // controllo il timeout
+                System.out.println(">> MANAGER >> Timeout sfida.");
+                return null;
+            }
+
+        } catch (IOException e) {
+            System.out.println(">> MANAGER >> Eccezione Challenge >> " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        } 
+    }
+
+    /**
+     * Avvia la sfida sul client gestito. Invia le parole da tradurre, aspetta la traduzione e assegna i punti.
+     */
+    public void startChallenge() {
+
+        isPlaying = true;
+        this.matchPoints = 0;
+
+        ByteBuffer buffer = ByteBuffer.allocate(256);
+        int n;
+
+        try {
+            for (String parola : words.keySet()) {
+
+                send("challengeround " + parola);
+
+                do {
+                    try { Thread.sleep(100); }
+                    catch (InterruptedException e) {}
+                    buffer.clear();
+                    n = ((SocketChannel)key.channel()).read(buffer);
+                } while (n==0);
+
+                do {
+                    n = ((SocketChannel)key.channel()).read(buffer);
+                } while (n>0);
+
+                buffer.flip();
+                String ricevuta = StandardCharsets.UTF_8.decode(buffer).toString();
+                String comando = ricevuta.split(" ")[0];
+                String parolaTradotta = ricevuta.split(" ")[1];
+                ArrayList<String> possibiliTraduzioni = words.get(parola);
+
+                if(comando.equals("challengeanswer")) {
+                    if(parolaTradotta.equals("-1")) { // tempo scaduto per la parola
+                        matchPoints += 0; // parola non tradotta, 0 punti
+
+                    }
+                    else if (possibiliTraduzioni.contains(parolaTradotta.toLowerCase())) {
+                        matchPoints += 2; // traduzione corretta (X=+2)
+
+                    }
+                    else {
+                        matchPoints -= 2; // traduzione errata (Y=-2)
+                    }
+                }
+            }
+
+        } catch (IOException e) {}
+
+        // fine sfida
+        send("challengeround -3");
+        isPlaying = false;
+        words = null;
     }
 
     @Override
@@ -116,7 +237,7 @@ public class WQManager implements Runnable {
 
                     if (n==-1) isOnline = false; // non c'è più niente da leggere sul SocketChannel
 
-                    else if(words==null) { // 
+                    else if(words==null) { // niente sfida in corso
 
                         do {
                             n = ((SocketChannel) key.channel()).read(buffer);
@@ -156,19 +277,19 @@ public class WQManager implements Runnable {
                                             n = ((SocketChannel)key.channel()).write(buf);
                                         } while (n>0);
 
-                                        // // leggo dal Channel il numero di porta per le sfide
-                                        // buf = ByteBuffer.allocate(256);
-                                        // do {
-                                        //     Thread.sleep(100);
-                                        //     buf.clear();
-                                        //     n = ((SocketChannel)key.channel()).read(buf);
-                                        // } while (n==0);
-                                        // do {
-                                        //     n = ((SocketChannel)key.channel()).read(buf);
-                                        // } while (n>0);
-                                        // buf.flip();
-                                        // received = StandardCharsets.UTF_8.decode(buf).toString();
-                                        // portaSfida = Integer.parseInt(received.split(" ")[1]);
+                                        // leggo dal Channel il numero di porta per le sfide
+                                        buf = ByteBuffer.allocate(256);
+                                        do {
+                                            Thread.sleep(100);
+                                            buf.clear();
+                                            n = ((SocketChannel)key.channel()).read(buf);
+                                        } while (n==0);
+                                        do {
+                                            n = ((SocketChannel)key.channel()).read(buf);
+                                        } while (n>0);
+                                        buf.flip();
+                                        received = StandardCharsets.UTF_8.decode(buf).toString();
+                                        portaSfida = Integer.parseInt(received.split(" ")[1]);
                                     }
 
                                     // messaggi di errore sul login
@@ -206,7 +327,7 @@ public class WQManager implements Runnable {
                                 }
                                 break;
 
-                            case "aggiungi_amico" :
+                            case "addfriend" : 
                                 System.out.println(">> MANAGER >> verifica aggiungi_amico " + received.split(" ")[1] + " " + received.split(" ")[2]);
                                 int result = this.server.aggiungiAmico(received.split(" ")[1], received.split(" ")[2]);
                                 if (result==0) { // la registrazione dell'amicizia è avvenuta
@@ -268,11 +389,20 @@ public class WQManager implements Runnable {
                                 send(messaggio);
                                 break;
                             
+                            case "challenge" :
+                                System.out.println(">> MANAGER >> " + username + " sfida " + received.split(" ")[1]);
+                                this.server.sfida(this.username, received.split(" ")[1]);
+                                break;
                         }
 
                     }
 
                 }
+
+                else { // words != null
+                    startChallenge();
+                }
+
  
             } while(isOnline);
             
