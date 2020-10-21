@@ -13,6 +13,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Timer;
 
@@ -42,10 +43,10 @@ public class WQClient {
      */
     private SelectionKey key;
 
-    /**
-     * Suffisso per i messaggi da mandare, utilizzato per le risposte durante la sfida.
-     */
-    private String suffisso = "";
+    // /**
+    //  * Suffisso per i messaggi da mandare, utilizzato per le risposte durante la sfida.
+    //  */
+    // private String suffisso = "";
     
     /**
      * Timer per il tempo di invio di una traduzione durante la sfida.
@@ -153,14 +154,14 @@ public class WQClient {
                         try {
                             DatagramSocket datagramSocket = new DatagramSocket();
                             new Thread(new WQClientDatagramReceiver(datagramSocket)).start();
-                            string = "challengePort " + datagramSocket.getLocalPort();
+                            string = "challengeport " + datagramSocket.getLocalPort();
                             buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
                             do { 
                                 n = ((SocketChannel) key.channel()).write(buf); 
                             } while (n > 0);
-                            System.out.println(">> CLIENT >> Listener UDP su porta " + datagramSocket.getLocalPort());
+                            System.out.println(">> CLIENT >> Receiver UDP su porta " + datagramSocket.getLocalPort());
                         } catch (Exception e) {
-                            string = "challengePort -1";
+                            string = "challengeport -1";
                             buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
                             do { 
                                 n = ((SocketChannel) key.channel()).write(buf); 
@@ -208,13 +209,15 @@ public class WQClient {
      */
     public int send(String message) {
         try {
+            // String messaggio = suffisso.concat(message);
+            // ByteBuffer buffer = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
             ByteBuffer buffer = ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8));
 
-            if (suffisso.equals("challengeanswer")) {
-                translationTimer.cancel();
-                translationTimer = null;
-            }
-            suffisso = "";
+            // if (suffisso.equals("challengeanswer ")) {
+            //     translationTimer.cancel();
+            //     translationTimer = null;
+            // }
+            // suffisso = "";
 
             int n;
             do {
@@ -233,7 +236,7 @@ public class WQClient {
                 } while(n>0);
                 buffer.flip();
                 String risposta = StandardCharsets.UTF_8.decode(buffer).toString();
-                if(risposta.split(" ")[0].equals("answer")) {
+                if(risposta.split(" ")[0].equals("answer")) { 
                     switch (risposta.split(" ")[1]) {
                         case "ADDFRIENDOK" :
                             System.out.println(">> CLIENT >> AddFriend >> Amicizia creata con successo.");
@@ -320,6 +323,9 @@ public class WQClient {
                     if (parola.equals("1")) { // inizio sfida
                         System.out.println(">> CLIENT >> Sfida iniziata.");
                         WQClientDatagramReceiver.sfidaInCorso = true;
+                        WQClientLink.gui.startChallenge();
+                        // translationTimer = new Timer();
+                        // translationTimer.schedule(new WQClientTimerTask(this), 30000); // 30 secondi per la sfida
                     }
                     else if (parola.equals("-1")) { // fine sfida (errore)
                         System.out.println(">> CLIENT >> Errore. Sfida terminata.");
@@ -331,12 +337,14 @@ public class WQClient {
                     else if (parola.equals("-3")) { // fine sfida
                         System.out.println(">> CLIENT >> Sfida completata.");
                         WQClientDatagramReceiver.sfidaInCorso = false;
+                        WQClientLink.gui.endChallenge();
                     }
                     else { // parola da tradurre per la sfida
                         System.out.println(">> CLIENT >> Parola da tradurre: " + parola);
-                        suffisso = "challengeanswer ";
+                        WQClientLink.gui.setCurrentWord(parola);
+                        // suffisso = "challengeanswer ";
                         translationTimer = new Timer();
-                        translationTimer.schedule(new WQClientTimerTask(this), 5000);
+                        translationTimer.schedule(new WQClientTimerTask(this), 6000); // 6 secondi per tradurre la parola
                     }
 
                 default : 

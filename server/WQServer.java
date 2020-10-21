@@ -322,7 +322,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
                 if(onlineUsers.containsKey(nickAmico)) { // controllo che nickAmico sia online
 
-                    DatagramSocket datagramSocket = onlineUsers.get(nickAmico).challenge(nickUtente, this.port);
+                    DatagramSocket datagramSocket = onlineUsers.get(nickAmico).challenge(nickUtente, this.port); 
 
                     if(datagramSocket!=null) { // la richiesta è stata accettata
 
@@ -379,7 +379,8 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                                             .toLowerCase()
                                             .replaceAll("!", "")
                                             .replaceAll("\\.", "")
-                                            .replaceAll("-", "");
+                                            .replaceAll("-", ""); 
+                                            // pulisco quello che recupero dal json per evitare errori dovuti a maiuscole/minuscole o caratteri speciali
                                     traduzioni.add(translation);
                                 }
                                 paroleSfida.put(parola, traduzioni);
@@ -393,21 +394,22 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                         } catch (IOException e) {
                             System.out.println(">> SERVER >> Dizionario non trovato.");
                         }
-
-
                     }
 
                     else { // sfida rifiutata, utente già occupato o timer scaduto
+                        System.out.println(">> SERVER >> SFIDA >> utente occupato o timer scaduto (DatagramSocket null)");
                         WQManager sfidante = onlineUsers.get(nickUtente);
                         sfidante.send("challengeround -2");
                     }
                 }
                 else { // nickAmico non è online
+                    System.out.println(">> SERVER >> SFIDA >> utente offline");
                     WQManager sfidante = onlineUsers.get(nickUtente);
                     sfidante.send("challengeround -2");
                 }
             }
             else { // nickUtente e nickAmico non sono amici
+                System.out.println(">> SERVER >> SFIDA >> utente non tra gli amici");
                 WQManager sfidante = onlineUsers.get(nickUtente);
                 sfidante.send("challengeround -2");
             }
@@ -447,7 +449,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
         else { // pareggio
             user1.send("answer challengetie " + utente1.points);
-            user2.send("answer challengetie  " + utente2.points);
+            user2.send("answer challengetie " + utente2.points);
         }
 
         // salvo i dati del server

@@ -88,6 +88,8 @@ public class WQClientGUI {
      * Pannello dell'interfaccia della sfida
      */
     private JPanel challengePanel;
+    private JLabel challengerLabel; // label col nome dell'aversario
+    private JLabel currentWord; // parola da tradurre nel round corrente della sfida
     private JTextField translationInput; // campo per inserire la parola tradotta
     private JButton translateButton; // bottone per inviare il contenuto di translationInput
 
@@ -153,7 +155,7 @@ public class WQClientGUI {
                     usernameInput.setText(""); // svuoto l'input username
                     passwordInput.setText(""); // svuoto l'input password
                     frame.invalidate();
-                    frame.remove(loginPanel);
+                    frame.getContentPane().removeAll();
                     frame.add(topPanel, BorderLayout.NORTH);
                     frame.add(settingsPanel, BorderLayout.CENTER);
                     frame.revalidate();
@@ -269,7 +271,7 @@ public class WQClientGUI {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 String friendName = JOptionPane.showInputDialog(frame, "Chi vuoi sfidare?", null);
                 int n = WQClientLink.client.send("challenge " + friendName);
-                if (n==1) JOptionPane.showMessageDialog(frame, "Sfida inviata.", "Invio sfida.", JOptionPane.INFORMATION_MESSAGE);
+                // if (n==1) JOptionPane.showMessageDialog(frame, "Sfida inviata.", "Invio sfida.", JOptionPane.INFORMATION_MESSAGE);
                 if (n==0) JOptionPane.showMessageDialog(frame, "Errore invio sfida.", "Invio sfida.", JOptionPane.ERROR_MESSAGE);
                 
             }
@@ -351,7 +353,7 @@ public class WQClientGUI {
         GridBagConstraints challengePanelConstraints = new GridBagConstraints();
         challengePanelConstraints.fill = GridBagConstraints.HORIZONTAL;
 
-        JLabel challengerLabel = new JLabel("Sfida contro " + challenger);
+        challengerLabel = new JLabel("Sfida contro " + challenger);
         challengePanelConstraints.gridx = 0;
         challengePanelConstraints.gridy = 0;
         challengePanel.add(challengerLabel, challengePanelConstraints);
@@ -372,7 +374,7 @@ public class WQClientGUI {
 
         Font challengeFont = new Font("challenge", Font.TRUETYPE_FONT, 40);
 
-        JLabel currentWord = new JLabel("bottiglia");
+        currentWord = new JLabel("bottiglia");
         currentWord.setFont(challengeFont);
         challengePanelConstraints.gridx = 1;
         challengePanelConstraints.gridy = 2;
@@ -392,8 +394,11 @@ public class WQClientGUI {
         translateButton.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                String translation = translationInput.getText();
+
+                String translation = translationInput.getText().toLowerCase().replaceAll(" ", "");
                 // completare il codice
+                if(translation.length()!=0) WQClientLink.client.send("challengeanswer " + translation);
+                else WQClientLink.client.send("challengeanswer -1");
             }
         });
 
@@ -435,12 +440,51 @@ public class WQClientGUI {
     }
 
     public int challengeDialog(String sfidante) {
+        int result = JOptionPane.showConfirmDialog(frame, sfidante + " ti sta sfidando!", "Sfida", JOptionPane.YES_NO_OPTION);
+        this.challenger = sfidante;
+        this.challengerLabel.setText("Sfida contro " + this.challenger);
+        // System.out.println(">> CLIENT GUI >> Risultato dialog accettazione sfida " + result);
+        // if (result == JOptionPane.YES_OPTION) { // in caso la sfida venga accettata
+        //     startChallenge(sfidante);
+        // }
+        return result;
+    }
 
-        return JOptionPane.showConfirmDialog(frame, sfidante + " ti sta sfidando!");
+    public void startChallenge() {
+        frame.invalidate();
+        frame.getContentPane().removeAll();
+        frame.add(challengePanel);
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    public void endChallenge () {
+        frame.invalidate();
+        frame.getContentPane().removeAll();
+        if(this.username!=null) {
+            WQClientLink.client.send("online");
+            WQClientLink.client.send("userpoints");
+            frame.add(topPanel);
+            frame.add(settingsPanel);
+        }
+        else {
+            frame.add(loginPanel);
+        }
+        frame.revalidate();
+        frame.repaint();
     }
 
     /**
-     * Imposta il valore dei punti.
+     * Imposta il label contenente la parola da tradurre per il round corrente della sfida.
+     * @param parola la parola da tradurre
+     */
+    public void setCurrentWord(String parola) {
+        this.currentWord.setText(parola);
+    }
+
+    /**
+     * Aggiorna il valore dei punti.
+     * @param punti i punti
      */
     public void setPoints(int punti) {
         this.points = punti;

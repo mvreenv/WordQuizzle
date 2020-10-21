@@ -22,6 +22,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
+import org.w3c.dom.UserDataHandler;
+
 import client.WQClientLink;
 import common.WQUser;
 
@@ -106,41 +108,50 @@ public class WQManager implements Runnable {
     }
 
     /**
-     * Invia tramite UDP la sfida da parte di nickSfidante
+     * Invia in UDP la richiesta di sfida da parte di nickSfidante al client gestito da questo WQManager.
+     * @param nickSfidante 
+     * @param porta gli passo la porta di ascolto del server
      */
     public DatagramSocket challenge(String nickSfidante, int porta) {
-
-        DatagramSocket datagramSocket;
         
         try {
+            DatagramSocket datagramSocket;
             datagramSocket = new DatagramSocket();
             datagramSocket.connect(InetAddress.getByName("127.0.0.1"), this.portaSfida);
-            // channel.connect(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), porta));
             datagramSocket.setSoTimeout(10000); // timeout della sfida T1 = 10 secondi
             byte[] buffer = ("challengerequest " + nickSfidante).getBytes(StandardCharsets.UTF_8);
             DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
             datagramSocket.send(datagramPacket);
+            System.out.println(">> MANAGER " + this.username + " INVIO UDP >> " + StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString() + " - indirizzo " + datagramPacket.getAddress() + ":" + datagramPacket.getPort());
 
             try {
                 buffer = new byte[256];
                 datagramPacket = new DatagramPacket(buffer, buffer.length);
                 datagramSocket.receive(datagramPacket);
                 String ricevuta = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString();
-                // ricevo 'challengeresponse OK', 'challengeresponse NO' o 'challengeresponse BUSY'
-                String risposta = ricevuta.split(" ")[1];
-                if("OK".equals(risposta)) {
-                    System.out.println(">> MAANGER >> " + this.username + " ha accettato la sfida.");
-                    return datagramSocket;
+                ricevuta.stripTrailing();
+                System.out.println(">> MANAGER " + this.username + " >> DATAGRAM SOCKET RECEIVE >> " + ricevuta);
+                if (ricevuta.split(" ")[0].equals("challengeresponse")) {
+                    // ricevo 'challengeresponse OK', 'challengeresponse NO' o 'challengeresponse BUSY'
+                    String risposta = ricevuta.split(" ")[1];
+                    if(risposta.contains("OK")) {
+                        System.out.println(">> MANAGER >> " + this.username + " ha accettato la sfida.");
+                        System.out.println(datagramSocket.equals(null));
+                        return datagramSocket;
+                    }
+                    else if ("BUSY".contains(risposta)) {
+                        System.out.println(">> MANAGER >> " + this.username + " è già occupato in un'altra sfida.");
+                        return null;
+                    }
+                    else { //("NO".equals(risposta)) 
+                        System.out.println(">> MANAGER >> " + this.username + " ha rifiutato la sfida.");
+                        return null;
+                    }
                 }
-                else if ("BUSY".equals(risposta)) {
-                    System.out.println(">> MAANGER >> " + this.username + " è già occupato in un'altra sfida.");
+                else {
+                    System.out.println(">> MANAGER >> Pacchetto UDP con comando sconosciuto.");
                     return null;
                 }
-                else { //"NO"
-                    System.out.println(">> MAANGER >> " + this.username + " ha rifiutato la sfida.");
-                    return null;
-                }
-
             } catch (SocketTimeoutException e) { // controllo il timeout
                 System.out.println(">> MANAGER >> Timeout sfida.");
                 return null;
@@ -277,7 +288,7 @@ public class WQManager implements Runnable {
                                             n = ((SocketChannel)key.channel()).write(buf);
                                         } while (n>0);
 
-                                        // leggo dal Channel il numero di porta per le sfide
+                                        // leggo numero di porta per le sfide
                                         buf = ByteBuffer.allocate(256);
                                         do {
                                             Thread.sleep(100);
@@ -288,8 +299,10 @@ public class WQManager implements Runnable {
                                             n = ((SocketChannel)key.channel()).read(buf);
                                         } while (n>0);
                                         buf.flip();
-                                        received = StandardCharsets.UTF_8.decode(buf).toString();
-                                        portaSfida = Integer.parseInt(received.split(" ")[1]);
+
+                                        received = StandardCharsets.UTF_8.decode(buf).toString(); // challengeport <numeroporta>
+                                        if(received.split(" ")[0].equals("challengeport"))
+                                            portaSfida = Integer.parseInt(received.split(" ")[1]);
                                     }
 
                                     // messaggi di errore sul login
@@ -408,7 +421,7 @@ public class WQManager implements Runnable {
             
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            // e.printStackTrace();
+            e.printStackTrace();
         }
 
         if (this.username != null) {
