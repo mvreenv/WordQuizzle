@@ -216,8 +216,6 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
                         }
                     }
-
-
                     return 0; // login eseguito con successo
                 }
                 

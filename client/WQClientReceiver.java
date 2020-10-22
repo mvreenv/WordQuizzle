@@ -2,6 +2,7 @@ package client;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
@@ -42,23 +43,24 @@ public class WQClientReceiver implements Runnable {
                         // e.printStackTrace();
                     }
                     buffer.clear();
+                    
                     n = ((SocketChannel) key.channel()).read(buffer);
                     
                 } while (n==0);
 
                 do {
-                    n = ((SocketChannel)key.channel()).read(buffer);
+                    n = ((SocketChannel) key.channel()).read(buffer);
                 } while (n>0);
 
                 buffer.flip();
                 String received = StandardCharsets.UTF_8.decode(buffer).toString();
-                System.out.println(">> CLIENT TCP RECEIVER >> " + received);
+                // System.out.println(">> CLIENT TCP RECEIVER >> " + received);
                 WQClientLink.client.receive(received);
             } while (socket.isConnected());
                
         } catch (IOException e) {
-            System.out.println(">> CLIENT TCP RECEIVER >> EXCEPTION >> " + e.getMessage());
-            e.printStackTrace();
+            // System.out.println(">> CLIENT TCP RECEIVER >> EXCEPTION >> " + e.getMessage());
+            // e.printStackTrace();
         }
     
     }

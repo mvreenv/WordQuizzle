@@ -1,6 +1,8 @@
 package client;
 
 import java.io.IOException;
+import java.io.StringReader;
+import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.DatagramSocket;
@@ -21,6 +23,8 @@ import common.WQInterface;
 import common.WQUser;
 
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
 
 /**
  * Classe che implementa le funzionalità del client di WordQuizzle.
@@ -95,97 +99,94 @@ public class WQClient {
      */
     public int login(String username, String password) {
 
-        try {
-            if (registra_utente(username, password) > -2) { // 0 registrato con successo, -1 utente già registrato
-                // connessione TCP al server
-                socket = SocketChannel.open();
-                System.out.println(">> CLIENT >> Connessione in corso sulla porta " + (port));
-                socket.connect(new InetSocketAddress("127.0.0.1", port)); // indirizzo di loopback (perché )il server gira sulla stessa macchina)
-                socket.configureBlocking(false);
-                Selector selector = Selector.open();
-                key = socket.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+        try { 
+            // connessione TCP al server
+            socket = SocketChannel.open();
+            System.out.println(">> CLIENT >> Connessione in corso sulla porta " + (port));
+            socket.connect(new InetSocketAddress("127.0.0.1", port)); // indirizzo di loopback (perché )il server gira sulla stessa macchina)
+            socket.configureBlocking(false);
+            Selector selector = Selector.open();
+            key = socket.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
 
-                // esegue il login
-                String string = "login " + username + " " + password;
-                ByteBuffer buf = ByteBuffer.wrap(string.getBytes());
-                int n;
-                do {
-                    n = ((SocketChannel)key.channel()).write(buf);
-                } while (n>0);
+            // prova ad eseguire il login
+            String string = "login " + username + " " + password;
+            ByteBuffer buf = ByteBuffer.wrap(string.getBytes());
+            int n;
+            do {
+                n = ((SocketChannel)key.channel()).write(buf);
+            } while (n>0);
 
-                // attende di ricevere una risposta
-                buf = ByteBuffer.allocate(1024);
-                do {
-                    n = ((SocketChannel)key.channel()).read(buf);
-                } while (n==0); 
-                do { 
-                    n = ((SocketChannel)key.channel()).read(buf);
-                } while (n>0);
-                buf.flip();
-                String received = StandardCharsets.UTF_8.decode(buf).toString();
-                String command = received.split(" ")[0];
-                // legge la risposta
-                if (command.equals("answer")) {
+            // attende di ricevere una risposta
+            buf = ByteBuffer.allocate(1024);
+            do {
+                n = ((SocketChannel)key.channel()).read(buf);
+            } while (n==0); 
+            do { 
+                n = ((SocketChannel)key.channel()).read(buf);
+            } while (n>0);
+            buf.flip();
+            String received = StandardCharsets.UTF_8.decode(buf).toString();
+            String command = received.split(" ")[0];
+            // legge la risposta
+            if (command.equals("answer")) {
 
-                    if (received.split(" ")[1].equals("LOGINOK")) {
-                        // ottengo i dati dell'utente
-                        WQUser myUser = null;
-                        Gson json = new Gson();
-                        buf = ByteBuffer.allocate(256);
-                        do {
-                            buf.clear();
-                            n = ((SocketChannel)key.channel()).read(buf);
-                        } while (n==0); 
+                if (received.split(" ")[1].equals("LOGINOK")) {
+                    // ottengo i dati dell'utente
+                    WQUser myUser = null;
+                    Gson json = new Gson();
+                    buf = ByteBuffer.allocate(256);
+                    do {
+                        buf.clear();
+                        n = ((SocketChannel)key.channel()).read(buf);
+                    } while (n==0); 
+                    do { 
+                        n = ((SocketChannel)key.channel()).read(buf);
+                    } while (n>0);
+                    buf.flip();
+                    received = StandardCharsets.UTF_8.decode(buf).toString();
+                    myUser = json.fromJson(received, WQUser.class);
+                    if (myUser!=null) {
+                        WQClientLink.gui.setUser(myUser.username, myUser.points);
+                        System.out.println(">> CLIENT >> " + myUser.username + " loggato.");
+                    }
+
+                    // avvio il thread listener TCP del client
+                    new Thread(new WQClientReceiver(socket, key)).start();
+
+                    // avvio il listener UDP 
+                    try {
+                        DatagramSocket datagramSocket = new DatagramSocket();
+                        new Thread(new WQClientDatagramReceiver(datagramSocket)).start();
+                        string = "challengeport " + datagramSocket.getLocalPort();
+                        buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
                         do { 
-                            n = ((SocketChannel)key.channel()).read(buf);
-                        } while (n>0);
-                        buf.flip();
-                        received = StandardCharsets.UTF_8.decode(buf).toString();
-                        myUser = json.fromJson(received, WQUser.class);
-                        if (myUser!=null) {
-                            WQClientLink.gui.setUser(myUser.username, myUser.points);
-                            System.out.println(">> CLIENT >> " + myUser.username + " loggato.");
-                        }
-
-                        // avvio il thread listener TCP del client
-                        new Thread(new WQClientReceiver(socket, key)).start();
-
-                        // avvio il listener UDP 
-                        try {
-                            DatagramSocket datagramSocket = new DatagramSocket();
-                            new Thread(new WQClientDatagramReceiver(datagramSocket)).start();
-                            string = "challengeport " + datagramSocket.getLocalPort();
-                            buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
-                            do { 
-                                n = ((SocketChannel) key.channel()).write(buf); 
-                            } while (n > 0);
-                            System.out.println(">> CLIENT >> Receiver UDP su porta " + datagramSocket.getLocalPort());
-                        } catch (Exception e) {
-                            string = "challengeport -1";
-                            buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
-                            do { 
-                                n = ((SocketChannel) key.channel()).write(buf); 
-                            } while (n > 0);
-                            System.out.println(">> CLIENT >> Errore avvio Listener UDP " + e.getMessage());
-                        }
-
-                        return 0;
-
+                            n = ((SocketChannel) key.channel()).write(buf); 
+                        } while (n > 0);
+                        System.out.println(">> CLIENT >> Receiver UDP su porta " + datagramSocket.getLocalPort());
+                    } catch (Exception e) {
+                        string = "challengeport -1";
+                        buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
+                        do { 
+                            n = ((SocketChannel) key.channel()).write(buf); 
+                        } while (n > 0);
+                        System.out.println(">> CLIENT >> Errore avvio Listener UDP " + e.getMessage());
                     }
-                    else if (received.split(" ")[1].equals("LOGINERR1")) {
-                        return -1;
-                    }
-                    else if (received.split(" ")[1].equals("LOGINERR2")) {
-                        return -2;
-                    }
-                    else if (received.split(" ")[1].equals("LOGINERR3")) {
-                        return -3;
-                    }
-                    else // errore generico
-                        return -4;
+
+                    return 0; // login avvenuto con successo
+
                 }
-
-            } 
+                else if (received.split(" ")[1].equals("LOGINERR1")) {
+                    return -1; // password errata
+                }
+                else if (received.split(" ")[1].equals("LOGINERR2")) {
+                    return -2; // utente non registrato
+                }
+                else if (received.split(" ")[1].equals("LOGINERR3")) {
+                    return -3; // utente già loggato
+                }
+                else // errore generico
+                    return -4;
+            }
         } catch (IOException e) {
             System.out.println(e.getMessage());
             e.printStackTrace();
@@ -209,15 +210,15 @@ public class WQClient {
      */
     public int send(String message) {
         try {
-            // String messaggio = suffisso.concat(message);
-            // ByteBuffer buffer = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
+
             ByteBuffer buffer = ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8));
 
-            // if (suffisso.equals("challengeanswer ")) {
-            //     translationTimer.cancel();
-            //     translationTimer = null;
-            // }
-            // suffisso = "";
+            // se sto inviando una risposta e il timer è in funzione lo annullo
+            if (message.contains("challengeanswer") && translationTimer!=null) {
+                translationTimer.cancel();
+                translationTimer = null;
+                
+            }
 
             int n;
             do {
@@ -281,25 +282,30 @@ public class WQClient {
             String comando = received.split(" ")[0];
             switch (comando) {
                 case "answer" :
+
                     if(received.contains("challenge")) { // messaggi di inizio e fine sfida
                         // recupero i punti ottenuti
                         int points = Integer.parseInt(received.split(" ")[2]);
 
                         // sfida vinta
                         if (received.split(" ")[1].equals("challengewon")) {
-                            System.out.println(">> CLIENT >> Hai vinto la sfida e sei a " + points + " punti.");
+                            // System.out.println(">> CLIENT >> Hai vinto la sfida e sei a " + points + " punti.");
+                            WQClientLink.gui.challengeResultDialog("Hai vinto la sfida e sei a " + points + " punti.");
                         }
                         else if (received.split(" ")[1].equals("challengelost")) {
-                            System.out.println(">> CLIENT >> Hai perso la sfida e sei a " + points + " punti.");
+                            // System.out.println(">> CLIENT >> Hai perso la sfida e sei a " + points + " punti.");
+                            WQClientLink.gui.challengeResultDialog("Hai perso la sfida e sei a " + points + " punti.");
                         }
                         else if (received.split(" ")[1].equals("challengetie")) {
-                            System.out.println(">> CLIENT >> Hai pareggiato la sfida e sei a " + points + " punti.");
+                            // System.out.println(">> CLIENT >> Hai pareggiato la sfida e sei a " + points + " punti.");
+                            WQClientLink.gui.challengeResultDialog("Hai pareggiato la sfida e sei a " + points + " punti.");
                         }
 
                         // aggiorno i punti sulla GUI
                         WQClientLink.gui.setPoints(points);
 
                     }
+
                     else { // le altre stringhe le stampo sul terminale
                         System.out.println(">> CLIENT >> " + received);
                     }
@@ -307,7 +313,7 @@ public class WQClient {
 
                 case "online" :
                     String amiciOnline = received.substring(comando.length()+1);
-                    System.out.println(">> CLIENT receive >> amici online >> " + amiciOnline);
+                    // System.out.println(">> CLIENT receive >> amici online >> " + amiciOnline);
                     WQClientLink.gui.updateOnlineFriends(amiciOnline);
                     return 1;
 
@@ -324,8 +330,8 @@ public class WQClient {
                         System.out.println(">> CLIENT >> Sfida iniziata.");
                         WQClientDatagramReceiver.sfidaInCorso = true;
                         WQClientLink.gui.startChallenge();
-                        // translationTimer = new Timer();
-                        // translationTimer.schedule(new WQClientTimerTask(this), 30000); // 30 secondi per la sfida
+                        translationTimer = new Timer();
+                        translationTimer.schedule(new WQClientTimerTask(this), 30000); // 30 secondi per la sfida
                     }
                     else if (parola.equals("-1")) { // fine sfida (errore)
                         System.out.println(">> CLIENT >> Errore. Sfida terminata.");
@@ -342,10 +348,18 @@ public class WQClient {
                     else { // parola da tradurre per la sfida
                         System.out.println(">> CLIENT >> Parola da tradurre: " + parola);
                         WQClientLink.gui.setCurrentWord(parola);
-                        // suffisso = "challengeanswer ";
                         translationTimer = new Timer();
                         translationTimer.schedule(new WQClientTimerTask(this), 6000); // 6 secondi per tradurre la parola
                     }
+                    return 1;
+
+                case "leaderboard" :
+                    WQClientLink.gui.mostraClassifica(received.split(" ")[1]);
+                    return 1;
+
+                case "friendlist" :
+                    WQClientLink.gui.listaAmici(received.split(" ")[1]);
+                    return 1;
 
                 default : 
                     return 0;

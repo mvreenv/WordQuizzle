@@ -134,16 +134,15 @@ public class WQManager implements Runnable {
                 if (ricevuta.split(" ")[0].equals("challengeresponse")) {
                     // ricevo 'challengeresponse OK', 'challengeresponse NO' o 'challengeresponse BUSY'
                     String risposta = ricevuta.split(" ")[1];
-                    if(risposta.contains("OK")) {
+                    if (risposta.contains("OK")) {
                         System.out.println(">> MANAGER >> " + this.username + " ha accettato la sfida.");
-                        System.out.println(datagramSocket.equals(null));
                         return datagramSocket;
                     }
-                    else if ("BUSY".contains(risposta)) {
+                    else if (risposta.contains("BUSY")) {
                         System.out.println(">> MANAGER >> " + this.username + " è già occupato in un'altra sfida.");
                         return null;
                     }
-                    else { //("NO".equals(risposta)) 
+                    else { // risposta.contains("NO")
                         System.out.println(">> MANAGER >> " + this.username + " ha rifiutato la sfida.");
                         return null;
                     }
@@ -200,11 +199,9 @@ public class WQManager implements Runnable {
                 if(comando.equals("challengeanswer")) {
                     if(parolaTradotta.equals("-1")) { // tempo scaduto per la parola
                         matchPoints += 0; // parola non tradotta, 0 punti
-
                     }
                     else if (possibiliTraduzioni.contains(parolaTradotta.toLowerCase())) {
                         matchPoints += 2; // traduzione corretta (X=+2)
-
                     }
                     else {
                         matchPoints -= 2; // traduzione errata (Y=-2)
@@ -244,7 +241,7 @@ public class WQManager implements Runnable {
                         } catch (InterruptedException e) {}
                         buffer.clear();
                         n =  ((SocketChannel) key.channel()).read(buffer);
-                    } while (n==0 ); //&& words==null
+                    } while (n==0 && words==null); //
 
                     if (n==-1) isOnline = false; // non c'è più niente da leggere sul SocketChannel
 
@@ -371,7 +368,6 @@ public class WQManager implements Runnable {
                                         n = ((SocketChannel)key.channel()).write(buf);
                                     } while (n>0);
                                 }
-
                                 break;
 
                             case "online" : 
@@ -403,8 +399,11 @@ public class WQManager implements Runnable {
                                 break;
                             
                             case "challenge" :
-                                System.out.println(">> MANAGER >> " + username + " sfida " + received.split(" ")[1]);
-                                this.server.sfida(this.username, received.split(" ")[1]);
+                                if(received.split(" ").length>1) {
+                                    System.out.println(">> MANAGER >> " + username + " sfida " + received.split(" ")[1]);
+                                    this.server.sfida(this.username, received.split(" ")[1]);
+                                }
+                                else send("challengeround -1");
                                 break;
                         }
 
@@ -413,7 +412,15 @@ public class WQManager implements Runnable {
                 }
 
                 else { // words != null
-                    startChallenge();
+                    // System.out.println("Parole sfida: ");
+                    // for (String parola : words.keySet()) {
+                    //     System.out.print(parola + ": ");
+                    //     for (String traduzione : words.get(parola)) {
+                    //         System.out.print(traduzione + " ");
+                    //     }
+                    //     System.out.print("\n");
+                    // }
+                    this.startChallenge();
                 }
 
  
@@ -424,7 +431,8 @@ public class WQManager implements Runnable {
             e.printStackTrace();
         }
 
-        if (this.username != null) {
+        // isOnline è diventato false 
+        if (this.username != null) { 
             System.out.println(">> MANAGER >> " + this.username + " è andato offline.");
             this.server.logout(username);
         }

@@ -19,7 +19,7 @@ public class WQClientTimerTask extends TimerTask {
 
     @Override
     public void run() {
-        client.send("-1");
+        client.send("challengeanswer -1");
     }
     
 }

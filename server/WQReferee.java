@@ -42,9 +42,9 @@ public class WQReferee implements Runnable {
         user1.words = new HashMap<>(challengeWords);
         user2.words = new HashMap<>(challengeWords);
 
-        // try { // aspetto tre secondi per dare tempo ai due utenti di far partire la sfida
-        //     Thread.sleep(3000);
-        // } catch (InterruptedException e) {}
+        try { // aspetto tre secondi per dare tempo ai due utenti di far partire la sfida
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {}
 
         do {
             try {

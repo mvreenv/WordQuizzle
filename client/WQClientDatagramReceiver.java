@@ -45,7 +45,7 @@ public class WQClientDatagramReceiver implements Runnable {
 
                 String ricevuta = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(buffer)).toString();
                 ricevuta.stripTrailing();
-                System.out.println(">> CLIENT UDP RECEIVER >> Ricevo: " + StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString() + " - indirizzo " + datagramPacket.getAddress() + ":" + datagramPacket.getPort() );
+                // System.out.println(">> CLIENT UDP RECEIVER >> Ricevo: " + StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString() + " - indirizzo " + datagramPacket.getAddress() + ":" + datagramPacket.getPort() );
 
                 String comando = ricevuta.split(" ")[0];
 
@@ -89,7 +89,7 @@ public class WQClientDatagramReceiver implements Runnable {
                             InetAddress indirizzo = datagramPacket.getAddress();
                             int porta = datagramPacket.getPort();
                             datagramPacket = new DatagramPacket(buffer, buffer.length, indirizzo, porta);
-                            System.out.println(">> CLIENT UDP RECEIVER >> Invio: " + StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString() + " - indirizzo " + datagramPacket.getAddress() + " :" + (datagramPacket.getPort()) );
+                            // System.out.println(">> CLIENT UDP RECEIVER >> Invio: " + StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString() + " - indirizzo " + datagramPacket.getAddress() + " :" + (datagramPacket.getPort()) );
                             datagramSocket.send(datagramPacket);
                         }
 
