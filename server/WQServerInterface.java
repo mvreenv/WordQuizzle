@@ -28,7 +28,7 @@ public interface WQServerInterface {
      * @param nickAmico Username dell'utente che si vuole aggiungere come amico.
      * @return 0 se la registrazione dell'amicizia è avvenuta, -1 se uno dei due username non esiste, -2 se la relazione di amicizia è già esistente, -3 se nickUtente e nickAmico sono lo stesso username.
      */
-    public int aggiungiAmico(String nickUtente, String nickAmico);
+    public int aggiungi_amico(String nickUtente, String nickAmico);
 
     /**
      * Restituisce la lista degli amici di un utente registrato al servizio.

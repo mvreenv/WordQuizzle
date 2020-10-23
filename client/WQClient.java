@@ -46,11 +46,6 @@ public class WQClient {
      * Chiave per la comunicazione.
      */
     private SelectionKey key;
-
-    // /**
-    //  * Suffisso per i messaggi da mandare, utilizzato per le risposte durante la sfida.
-    //  */
-    // private String suffisso = "";
     
     /**
      * Timer per il tempo di invio di una traduzione durante la sfida.
@@ -95,7 +90,7 @@ public class WQClient {
      * Esegue il login dell'utente specificato.
      * @param username lo username
      * @param password la password
-     * @return 
+     * @return 0 se il login è avvenuto con successo, -1 se la password è errata, -2 se l'utente non è registrato, -3 se l'utente è già loggato, -4 errore generico
      */
     public int login(String username, String password) {
 
@@ -188,8 +183,9 @@ public class WQClient {
                     return -4;
             }
         } catch (IOException e) {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
+            System.out.println(">> CLIENT >> Impossibile connettersi al server.");
+            // System.out.println(e.getMessage());
+            // e.printStackTrace();
         }
         return -4; // errore generico
     }
@@ -213,12 +209,12 @@ public class WQClient {
 
             ByteBuffer buffer = ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8));
 
-            // se sto inviando una risposta e il timer è in funzione lo annullo
-            if (message.contains("challengeanswer") && translationTimer!=null) {
-                translationTimer.cancel();
-                translationTimer = null;
+            // // se sto inviando una risposta e il timer è in funzione lo annullo
+            // if (message.contains("challengeanswer") && translationTimer!=null) {
+            //     translationTimer.cancel();
+            //     translationTimer = null;
                 
-            }
+            // }
 
             int n;
             do {
@@ -241,6 +237,8 @@ public class WQClient {
                     switch (risposta.split(" ")[1]) {
                         case "ADDFRIENDOK" :
                             System.out.println(">> CLIENT >> AddFriend >> Amicizia creata con successo.");
+                            try {Thread.sleep(100);}
+                            catch (InterruptedException e) {}
                             send("online"); // aggiorno la lista degli amici online in caso l'utente appena aggiunto sia collegato per mostrarlo nella lista
                             return 1;
                         case "ADDFRIENDERR1" : // uno dei due username non esiste
@@ -290,15 +288,15 @@ public class WQClient {
                         // sfida vinta
                         if (received.split(" ")[1].equals("challengewon")) {
                             // System.out.println(">> CLIENT >> Hai vinto la sfida e sei a " + points + " punti.");
-                            WQClientLink.gui.challengeResultDialog("Hai vinto la sfida e sei a " + points + " punti.");
-                        }
+                            WQClientLink.gui.challengeResultDialog("challengewon", points);
+                        } 
                         else if (received.split(" ")[1].equals("challengelost")) {
                             // System.out.println(">> CLIENT >> Hai perso la sfida e sei a " + points + " punti.");
-                            WQClientLink.gui.challengeResultDialog("Hai perso la sfida e sei a " + points + " punti.");
+                            WQClientLink.gui.challengeResultDialog("challengelost", points);
                         }
                         else if (received.split(" ")[1].equals("challengetie")) {
                             // System.out.println(">> CLIENT >> Hai pareggiato la sfida e sei a " + points + " punti.");
-                            WQClientLink.gui.challengeResultDialog("Hai pareggiato la sfida e sei a " + points + " punti.");
+                            WQClientLink.gui.challengeResultDialog("challengetie", points);
                         }
 
                         // aggiorno i punti sulla GUI
@@ -331,7 +329,7 @@ public class WQClient {
                         WQClientDatagramReceiver.sfidaInCorso = true;
                         WQClientLink.gui.startChallenge();
                         translationTimer = new Timer();
-                        translationTimer.schedule(new WQClientTimerTask(this), 30000); // 30 secondi per la sfida
+                        translationTimer.schedule(new WQClientTimerTask(this), 60000); // T2 = 1 minuto per la sfida
                     }
                     else if (parola.equals("-1")) { // fine sfida (errore)
                         System.out.println(">> CLIENT >> Errore. Sfida terminata.");
@@ -339,26 +337,40 @@ public class WQClient {
                     }
                     else if (parola.equals("-2")) { // sfida rifiutata
                         System.out.println(">> CLIENT >> Sfida rifiutata.");
+                        WQClientLink.gui.challenger = null;
                     }
                     else if (parola.equals("-3")) { // fine sfida
                         System.out.println(">> CLIENT >> Sfida completata.");
+                        if (translationTimer!=null) {
+                            translationTimer.cancel();
+                            translationTimer = null;
+                        }
                         WQClientDatagramReceiver.sfidaInCorso = false;
                         WQClientLink.gui.endChallenge();
+                        
                     }
                     else { // parola da tradurre per la sfida
                         System.out.println(">> CLIENT >> Parola da tradurre: " + parola);
-                        WQClientLink.gui.setCurrentWord(parola);
-                        translationTimer = new Timer();
-                        translationTimer.schedule(new WQClientTimerTask(this), 6000); // 6 secondi per tradurre la parola
+                        if(translationTimer!=null) {
+                            WQClientLink.gui.setCurrentWord(parola);
+                        }
+                        else {
+                            WQClientDatagramReceiver.sfidaInCorso = false;
+                            WQClientLink.gui.endChallenge();
+                        }
+                        // translationTimer = new Timer();
+                        // translationTimer.schedule(new WQClientTimerTask(this), 10000); // 10 secondi per tradurre una parola
                     }
                     return 1;
 
                 case "leaderboard" :
-                    WQClientLink.gui.mostraClassifica(received.split(" ")[1]);
+                    if (received.split(" ").length>1) WQClientLink.gui.mostraClassifica(received.split(" ")[1]);
+                    else WQClientLink.gui.mostraClassifica("");
                     return 1;
 
                 case "friendlist" :
-                    WQClientLink.gui.listaAmici(received.split(" ")[1]);
+                    if (received.split(" ").length>1) WQClientLink.gui.listaAmici(received.split(" ")[1]);
+                    else WQClientLink.gui.listaAmici("");
                     return 1;
 
                 default : 

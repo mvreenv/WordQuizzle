@@ -75,10 +75,8 @@ public class WQClientDatagramReceiver implements Runnable {
                             InetAddress indirizzo = datagramPacket.getAddress();
                             int porta = datagramPacket.getPort();
                             datagramPacket = new DatagramPacket(buffer, buffer.length, indirizzo, porta);
-                            System.out.println(">> CLIENT UDP RECEIVER >> Invio: " + StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString() + " - indirizzo " + datagramPacket.getAddress() + " :" + (datagramPacket.getPort()) );
+                            // System.out.println(">> CLIENT UDP RECEIVER >> Invio: " + StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString() + " - indirizzo " + datagramPacket.getAddress() + " :" + (datagramPacket.getPort()) );
                             datagramSocket.send(datagramPacket);
-
-                            // WQClientLink.gui.startChallenge(ricevuta.split(" ")[1]);
                         }
 
                         // l'utente rifiuta la sfida

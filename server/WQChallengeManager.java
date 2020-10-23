@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * Thread arbitro della sfida fra due utenti.
+ * Thread gestore della sfida fra due utenti.
  */
-public class WQReferee implements Runnable {
+public class WQChallengeManager implements Runnable {
 
     /**
      * Riferimento al gestore del primo utente.
@@ -28,7 +28,7 @@ public class WQReferee implements Runnable {
      */
     private HashMap<String, ArrayList<String>> challengeWords;
 
-    public WQReferee(WQManager u1, WQManager u2, WQServer s, HashMap<String, ArrayList<String>> w) {
+    public WQChallengeManager(WQManager u1, WQManager u2, WQServer s, HashMap<String, ArrayList<String>> w) {
         this.user1 = u1;
         this.user2 = u2;
         this.server = s;

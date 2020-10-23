@@ -65,7 +65,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
         ServerSocketChannel serverSocket = null; //Socket per le connessioni in entrata
         SocketChannel socket = null; // Socket da smistare ai gestori dei singoli client
-        ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(25); // gestori
+        ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10); // gestori
 
         this.port = porta;
         this.isRunning = true;
@@ -95,63 +95,6 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                     threadPool.execute(new WQManager(this, socket));
                     System.out.println(">> SERVER >> Nuovo gestore in esecuzione.");
                 }
-                // // else {
-                //     // ascolto dei comandi da terminale sul server
-                //     if (scanner.hasNext()){
-                        
-                //         String command = scanner.nextLine();
-                //         String[] words = command.split(" ");
-
-                //         switch (words[0]) {
-                //             case "help" :
-                //                 System.out.println(">> LISTA DEI COMANDI DEL SERVER WORDQUIZZLE ");
-                //                 System.out.println(">> aggiungi_amico user1 user2\taggiunge user2 alla lista amici di user1");
-                //                 System.out.println(">> amici user\t\t\tmostra la lista amici di user");
-                //                 System.out.println(">> classifica user\t\tmostra la classifica degli amici di user (user incluso)");
-                //                 System.out.println(">> login user password\t\teffettua il login di user con password");
-                //                 System.out.println(">> logout user\t\t\teffettua il logout di user");
-                //                 System.out.println(">> online \t\t\tmostra la lista degli utenti online");
-                //                 System.out.println(">> punteggio user\t\tmostra il punteggio di user");
-                //                 System.out.println(">>");
-                //                 break;
-                //             case "aggiungi_amico" :
-                //                 if(words.length==3) this.aggiungiAmico(words[1], words[2]);
-                //                 else System.out.println(">> Input errato, riprova. (aggiungi_amico user1 user2)");
-                //                 break;
-                //             case "amici" :
-                //                 if(words.length==2) this.lista_amici(words[1]);
-                //                 else System.out.println(">> Input errato, riprova. (amici user)");
-                //                 break;
-                //             case "classifica" :
-                //                 if(words.length==2) this.mostra_classifica(words[1]);
-                //                 else System.out.println(">> Input errato, riprova. (classifica user)");
-                //                 break;
-                //             case "login" :
-                //                 if (words.length==3) this.login(words[1], words[2], new WQManager(this, socket)); // CHECK
-                //                 else System.out.println(">> Input errato, riprova. (login user password)");
-                //                 break;
-                //             case "logout" :
-                //                 if (words.length==2) this.logout(words[1]);
-                //                 else System.out.println(">> Input errato, riprova. (logout user)");
-                //                 break;
-                //             case "online" :
-                //                 if(this.onlineUsers.size()>0) this.usersOnline();
-                //                 else System.out.println(">> Utenti online: nessun utente online.");
-                //                 break;
-                //             case "punteggio" :
-                //                 if(words.length==2) this.mostra_punteggio(words[1]);
-                //                 else System.out.println(">> Input errato, riprova. (punteggio user)");
-                //                 break;
-                //             case "switch_off" :
-                //                 isRunning = false;
-                //                 break;
-                //             default :
-                //                 System.out.println(">> Input errato, (digita \"help\" per vedere la lista dei comandi)");
-                //                 break;
-                //         }   
-                //     }
-                //     Thread.sleep(500);
-                // // }
 
             } while (isRunning);
 
@@ -160,13 +103,13 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             threadPool.shutdown();
             serverSocket.close();
 
-        } catch (IOException e) { // | InterruptedException
+        } catch (IOException e) { 
             System.out.println(">> " + e.getMessage());
         }
         finally {
             isRunning = false;
             System.out.println(">> Il server è offline.");
-            System.exit(1); //CHECK
+            System.exit(1); 
         }
         
 
@@ -174,6 +117,9 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
     /**
      * Procedura di registrazione dell'utente.
+     * @param nickUtente Username del nuovo utente da registrare.
+     * @param password Password del nuovo utente da registrare.
+     * @return 0 se la registrazione è andata a buon fine, -1 se l'utente è già registrato, -2 se la password è vuota
      */
     public synchronized int registra_utente(String nickUtente, String password) {
 
@@ -193,8 +139,13 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         }
     }
 
-    // 0 se il login è stato effettuato con successo, -1 se la password è errata, -2 se l'utente non è registrato, -3 se l'utente è già loggato.
-    // da implementare con connessione TCP
+    /**
+     * Procedura di login.
+     * @param nickUtente Username dell'utente che vuole fare il login.
+     * @param password Password dell'utente che vuole fare il login.
+     * @param manager Thread gestore associato al client in cui si tenta il login.
+     * @return 0 se il login è stato effettuato con successo, -1 se la password è errata, -2 se l'utente non è registrato, -3 se l'utente è già loggato.
+     */
     public synchronized int login(String nickUtente, String password, WQManager manager) {
         // controllo se nickUtente è registrato
         if (userDB.containsKey(nickUtente)) { 
@@ -204,15 +155,14 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                 if(userDB.get(nickUtente).password.equals(password)) {
                     onlineUsers.put(nickUtente, manager);
 
-                    for (String onlineuser : onlineUsers.keySet()) {
-                        if (userDB.get(nickUtente).friends.contains(onlineuser)) {
-                            
-                            ArrayList<String> amiciOnline = usersOnline(onlineuser);
-                            String messaggio = "online "; // formato : online amico1 amico2 ...
-                            for(int i=0; i<amiciOnline.size(); i++) {
+                    for (String amico : userDB.keySet() ) {
+                        if ( userDB.get(amico).friends.contains(nickUtente) && onlineUsers.containsKey(amico)) {
+                            ArrayList<String> amiciOnline = usersOnline(amico);
+                            String messaggio = "online "; // formato: online amico1 amico2 ...
+                            for (int i=0; i<amiciOnline.size(); i++) {
                                 messaggio = messaggio + amiciOnline.get(i) + " ";
                             }
-                            onlineUsers.get(onlineuser).send(messaggio);
+                            onlineUsers.get(amico).send(messaggio);
 
                         }
                     }
@@ -232,27 +182,33 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         }
     }
 
+    /**
+     * Esegue il logout dell'utente richiesto.
+     * @param nickUtente Username dell'utente che chiede di eseguire il logout.
+     */
     public void logout(String nickUtente) {
         this.onlineUsers.remove(nickUtente);
-        for (String onlineuser : onlineUsers.keySet()) {
-            if (userDB.get(nickUtente).friends.contains(onlineuser)) {
-                
-                ArrayList<String> amiciOnline = usersOnline(onlineuser);
-                String messaggio = "online "; // formato : online amico1 amico2 ...
-                for(int i=0; i<amiciOnline.size(); i++) {
+
+        for (String amico : userDB.keySet() ) {
+            if ( userDB.get(amico).friends.contains(nickUtente) && onlineUsers.containsKey(amico)) {
+                ArrayList<String> amiciOnline = usersOnline(amico);
+                String messaggio = "online "; // formato: online amico1 amico2 ...
+                for (int i=0; i<amiciOnline.size(); i++) {
                     messaggio = messaggio + amiciOnline.get(i) + " ";
                 }
-                onlineUsers.get(onlineuser).send(messaggio);
+                onlineUsers.get(amico).send(messaggio);
 
             }
         }
-        // System.out.println(">> Logout: " + nickUtente + " logout effettuato con successo.");
     }
 
     /**
      * Aggiunge nickAmico alla lista amici di nickUtente.
+     * @param nickUtente Username dell'utente che vuole aggiungere un amico.
+     * @param nickAmico Username dell'utente che si vuole aggiungere come amico.
+     * @return 0 se la creazione dell'amicizia va a buon fine, -1 se uno dei due username non esiste nel database, -2 se l'amicizia esiste già, -3 se i due username sono uguali.
      */
-    public int aggiungiAmico(String nickUtente, String nickAmico) {
+    public int aggiungi_amico(String nickUtente, String nickAmico) {
         // controllo che nickUtente e nickAmico non siano uguali uguali
         if(!nickUtente.equals(nickAmico)) { 
             // uno dei due username non esiste
@@ -281,6 +237,8 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
     /**
      * Restituisce la lista degli amici di nickUtente.
+     * @param nickUtente Username di cui si vuole ottenere la lista degli amici.
+     * @return La lista degli amici in formato JSON.
      */
     public String lista_amici(String nickUtente) {
         // nickUtente vuoto
@@ -311,6 +269,8 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
     /**
      * Invia una richiesta di sfida da parte di un utente ad un altro.
+     * @param nickUtente username dell'utente sfidante
+     * @param nickAmico username dell'utente sfidato
      */
     public void sfida(String nickUtente, String nickAmico) {
 
@@ -387,7 +347,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                                 System.out.println();
                             }
                             // avvio il thread arbitro della sfida
-                            new Thread(new WQReferee(managerUtente,managerAmico,this,paroleSfida)).start();
+                            new Thread(new WQChallengeManager(managerUtente,managerAmico,this,paroleSfida)).start();
 
                         } catch (IOException e) {
                             System.out.println(">> SERVER >> Dizionario non trovato.");
@@ -418,45 +378,9 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         }
     }
 
-     /**
-      * Conclude la sfida fra user1 e user2 e aggiorna i loro punteggi.
-      */
-    public void fineSfida(WQManager user1, int puntiUtente1, WQManager user2, int puntiUtente2) {
-
-        // recupero gli oggetti utente dai gestori
-        WQUser utente1 = userDB.get(user1.username); 
-        WQUser utente2 = userDB.get(user2.username);
-        
-        // aggiorno i punteggi con i punti guadagnati durante la sfida
-        utente1.points += puntiUtente1;
-        utente2.points += puntiUtente2;
-        
-        // assegno il bonus vittoria e invio i messaggi di fine sfida ai client (bonus vittoria Z = +3)
-        
-        if ( puntiUtente1 > puntiUtente2 ) { // ha vinto user1
-            utente1.points += 3;
-            user1.send("answer challengewon " + utente1.points);
-            user2.send("answer challengelost " + utente2.points);
-        }
-
-        else if ( puntiUtente2 > puntiUtente1 ) { // ha vinto user2
-            utente2.points += 3;
-            user2.send("answer challengewon " + utente2.points);
-            user1.send("answer challengelost " + utente1.points);
-        }
-
-        else { // pareggio
-            user1.send("answer challengetie " + utente1.points);
-            user2.send("answer challengetie " + utente2.points);
-        }
-
-        // salvo i dati del server
-        saveServer();
-
-    }
-
     /**
      * Restituisce il punteggio dell'utente specificato.
+     * @param nickUtente username di cui si vuole conoscere il punteggio
      */
     public int mostra_punteggio(String nickUtente) {
         System.out.println(">> Punteggio di " + nickUtente + ": " + userDB.get(nickUtente).points);
@@ -464,7 +388,8 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     }
 
     /**
-     * Mostra la classifica in ordine descrescente degli amici di nickUtente (compreso).
+     * Mostra la classifica in ordine descrescente degli amici di un utente (compreso).
+     * @param nickUtente username dell'utente di cui si vuole ottenere la classifica
      */
     public String mostra_classifica(String nickUtente) {
         // nickUtente vuoto
@@ -501,6 +426,47 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         Gson amici = new Gson();
         return amici.toJson(list.toArray());
     }
+    
+    /**
+     * Conclude la sfida fra user1 e user2 e aggiorna i loro punteggi.
+     * @param user1 thread gestore del primo utente
+     * @param puntiUtente1 punti guadagnati dal primo utente durante la partita
+     * @param user2 thread gestore del secondo utente
+     * @param puntiUtente2 punti guadagnati dal primo utente durante la partita
+     */
+    public void fineSfida(WQManager user1, int puntiUtente1, WQManager user2, int puntiUtente2) {
+
+        // recupero gli oggetti utente dai gestori
+        WQUser utente1 = userDB.get(user1.username); 
+        WQUser utente2 = userDB.get(user2.username);
+        
+        // aggiorno i punteggi con i punti guadagnati durante la sfida
+        utente1.points += puntiUtente1;
+        utente2.points += puntiUtente2;
+        
+        // assegno il bonus vittoria e invio i messaggi di fine sfida ai client (bonus vittoria Z = +5)
+        
+        if ( puntiUtente1 > puntiUtente2 ) { // ha vinto user1
+            utente1.points += 5;
+            user1.send("answer challengewon " + utente1.points);
+            user2.send("answer challengelost " + utente2.points);
+        }
+
+        else if ( puntiUtente2 > puntiUtente1 ) { // ha vinto user2
+            utente2.points += 5;
+            user2.send("answer challengewon " + utente2.points);
+            user1.send("answer challengelost " + utente1.points);
+        }
+
+        else { // pareggio
+            user1.send("answer challengetie " + utente1.points);
+            user2.send("answer challengetie " + utente2.points);
+        }
+
+        // salvo i dati del server
+        saveServer();
+
+    }
 
     /**
      * Inizializza il server con le eventuali informazioni contenute nel file datiServer.json
@@ -529,7 +495,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             } while (n > -1);
             userDBFileInputStream.close();
 
-            // conversione in json e upload nel database a runtime del server
+            // conversione in json e caricamento nel database a runtime del server
             Gson gson = new Gson();
             JsonReader reader = new JsonReader(new StringReader(userBaseJson));
             reader.setLenient(true);

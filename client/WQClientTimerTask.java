@@ -3,9 +3,8 @@ package client;
 import java.util.TimerTask;
 
 /**
- * TimerTask per il timeout di invio di una traduzione durante la sfida. (Invia "-1" al server.)
+ * TimerTask per la durata della sfida.
  */
-
 public class WQClientTimerTask extends TimerTask {
 
     /**
@@ -13,13 +12,18 @@ public class WQClientTimerTask extends TimerTask {
      */
     private WQClient client;
 
+    /**
+     * Costruttore.
+     * @param client Riferimento al client.
+     */
     public WQClientTimerTask(WQClient client) {
         this.client = client;
     }
 
     @Override
     public void run() {
-        client.send("challengeanswer -1");
+        client.receive("challengeround -3");
+        // client.send("challengeanswer -1");
     }
     
 }

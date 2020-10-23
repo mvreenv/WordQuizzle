@@ -28,7 +28,7 @@ import client.WQClientLink;
 import common.WQUser;
 
 /**
- * Gestore della comunicazione col server della singola istanza client.
+ * Thread gestore della comunicazione dal server alla singola istanza client.
  */
 
 public class WQManager implements Runnable {
@@ -130,7 +130,7 @@ public class WQManager implements Runnable {
                 datagramSocket.receive(datagramPacket);
                 String ricevuta = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString();
                 ricevuta.stripTrailing();
-                System.out.println(">> MANAGER " + this.username + " >> DATAGRAM SOCKET RECEIVE >> " + ricevuta);
+                System.out.println(">> MANAGER " + this.username + " >> RICEZIONE UDP >> " + ricevuta);
                 if (ricevuta.split(" ")[0].equals("challengeresponse")) {
                     // ricevo 'challengeresponse OK', 'challengeresponse NO' o 'challengeresponse BUSY'
                     String risposta = ricevuta.split(" ")[1];
@@ -192,21 +192,27 @@ public class WQManager implements Runnable {
 
                 buffer.flip();
                 String ricevuta = StandardCharsets.UTF_8.decode(buffer).toString();
-                String comando = ricevuta.split(" ")[0];
-                String parolaTradotta = ricevuta.split(" ")[1];
-                ArrayList<String> possibiliTraduzioni = words.get(parola);
+                
+                if(ricevuta.split(" ").length>=2) {
+                    String comando = ricevuta.split(" ")[0];
 
-                if(comando.equals("challengeanswer")) {
-                    if(parolaTradotta.equals("-1")) { // tempo scaduto per la parola
-                        matchPoints += 0; // parola non tradotta, 0 punti
-                    }
-                    else if (possibiliTraduzioni.contains(parolaTradotta.toLowerCase())) {
-                        matchPoints += 2; // traduzione corretta (X=+2)
-                    }
-                    else {
-                        matchPoints -= 2; // traduzione errata (Y=-2)
+                    String parolaTradotta = ricevuta.split(" ")[1];
+                    ArrayList<String> possibiliTraduzioni = words.get(parola);
+
+                    if(comando.equals("challengeanswer")) {
+                        if(parolaTradotta.equals("-1")) { // premo invio senza scrivere nulla nell'input traduzione
+                            matchPoints += 0; // parola non tradotta, 0 punti
+                        }
+                        else if (possibiliTraduzioni.contains(parolaTradotta.toLowerCase())) {
+                            matchPoints += 3; // traduzione corretta (X=+3)
+                        }
+                        else {
+                            matchPoints -= 2; // traduzione errata (Y=-2)
+                        }
                     }
                 }
+                
+                
             }
 
         } catch (IOException e) {}
@@ -339,7 +345,7 @@ public class WQManager implements Runnable {
 
                             case "addfriend" : 
                                 System.out.println(">> MANAGER >> verifica aggiungi_amico " + received.split(" ")[1] + " " + received.split(" ")[2]);
-                                int result = this.server.aggiungiAmico(received.split(" ")[1], received.split(" ")[2]);
+                                int result = this.server.aggiungi_amico(received.split(" ")[1], received.split(" ")[2]);
                                 if (result==0) { // la registrazione dell'amicizia è avvenuta
                                     messaggio = "answer ADDFRIENDOK";
                                     ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
@@ -371,7 +377,7 @@ public class WQManager implements Runnable {
                                 break;
 
                             case "online" : 
-                                System.out.println(">> MANAGER >> verifica amici online di " + username);
+                                // System.out.println(">> MANAGER >> verifica amici online di " + username);
                                 ArrayList<String> amiciOnline = this.server.usersOnline(username);
                                 messaggio = "online "; // formato : online amico1 amico2 ...
                                 for(int i=0; i<amiciOnline.size(); i++) {
@@ -381,7 +387,7 @@ public class WQManager implements Runnable {
                                 break;
 
                             case "friendlist" :
-                            System.out.println(">> MANAGER >> recupero lista completa amici di " + username);
+                                System.out.println(">> MANAGER >> recupero lista completa amici di " + username);
                                 messaggio = "friendlist " + this.server.lista_amici(username);
                                 send(messaggio);
                                 break;
@@ -403,7 +409,7 @@ public class WQManager implements Runnable {
                                     System.out.println(">> MANAGER >> " + username + " sfida " + received.split(" ")[1]);
                                     this.server.sfida(this.username, received.split(" ")[1]);
                                 }
-                                else send("challengeround -1");
+                                else send("challengeround -1"); 
                                 break;
                         }
 
