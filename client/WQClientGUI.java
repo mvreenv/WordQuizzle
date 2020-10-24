@@ -49,10 +49,10 @@ public class WQClientGUI {
     /**
      * Palette di colori per l'interfaccia.
      */
-    private static final Color DARK_BLUE = Color.decode("#252A36");
-    private static final Color LIGHT_BLUE = Color.decode("#425563");
-    private static final Color MINT_GREEN = Color.decode("#80E0A7");
-    private static final Color WHITE = Color.WHITE;
+    public static final Color DARK_BLUE = Color.decode("#252A36");
+    public static final Color LIGHT_BLUE = Color.decode("#425563");
+    public static final Color MINT_GREEN = Color.decode("#80E0A7");
+    public static final Color WHITE = Color.WHITE;
 
     /**
      * Frame per la costruzione della GUI del client WordQuizzle.
@@ -141,10 +141,10 @@ public class WQClientGUI {
         frame.setLayout(new BorderLayout());
         frame.setBackground(LIGHT_BLUE);
 
-        // LOGIN PANEL START
+        // Inizializzo la schermata di login e registrazione
         loginPanel = new JPanel();
         loginPanel.setBackground(LIGHT_BLUE);
-        loginPanel.setLayout(new GridBagLayout()); // GridLayout(int rows, int cols, int hgap, int vgap)
+        loginPanel.setLayout(new GridBagLayout());
         GridBagConstraints loginPanelConstraints = new GridBagConstraints();
 
         JLabel usernameLabel = new JLabel("Username");
@@ -177,13 +177,11 @@ public class WQClientGUI {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 String user = usernameInput.getText();
                 String pw = String.copyValueOf(passwordInput.getPassword());
-                if(user!=null && !user.isEmpty() && !user.isBlank()) {
+                if(user!=null && !user.isEmpty() && !user.isBlank() && pw!=null && !pw.isEmpty() && !pw.isBlank()) {
                     int n = WQClientLink.client.login(user, pw);
                     if (n==0) { // login avvenuto con successo
-                        //JOptionPane.showMessageDialog(frame, "Login avvenuto con successo!");
-                        try {
-                            Thread.sleep(150);
-                        } catch (InterruptedException e ) {}
+                        try { Thread.sleep(500); }
+                        catch (InterruptedException e ) {}
                         WQClientLink.client.send("online"); // chiedo al server la lista aggiornata degli utenti online
                         usernameInput.setText(""); // svuoto l'input username
                         passwordInput.setText(""); // svuoto l'input password
@@ -195,14 +193,20 @@ public class WQClientGUI {
                         frame.repaint();
                     }
                     else if (n==-1) { // password errata
-                        JOptionPane.showMessageDialog(frame, "Password errata.", "Errore login", JOptionPane.WARNING_MESSAGE);
+                        WQClientGUIPopup.showMessageDialog(frame, "Password errata.", "Errore login");
                     }
                     else if (n==-2) { // utente non registrato
-                        JOptionPane.showMessageDialog(frame, "Username non riconosciuto.", "Errore login", JOptionPane.WARNING_MESSAGE);
+                        WQClientGUIPopup.showMessageDialog(frame, "Username non riconosciuto.", "Errore login");
                     }
-                    else if (n==-3) { // l'utente è già loggato -- non dovrebbe mai succedere
-                        JOptionPane.showMessageDialog(frame, "Utente già loggato.", "Errore login", JOptionPane.WARNING_MESSAGE);
+                    else if (n==-3) { // l'utente è già loggato 
+                        WQClientGUIPopup.showMessageDialog(frame, "Utente già loggato.", "Errore login");
                     }
+                    else if (n==-4) { // errore generico (server offline)
+                        WQClientGUIPopup.showMessageDialog(frame, "Il Server è offline.", "Errore login");
+                    }
+                }
+                else {
+                    WQClientGUIPopup.showMessageDialog(frame, "Riempire i campi per favore.", "Errore login.");
                 }
             }
         });
@@ -218,17 +222,17 @@ public class WQClientGUI {
                 if(user!=null && !user.isEmpty() && !user.isBlank()) {
                     int n = WQClientLink.client.registra_utente(user, pw);
                     if (n==0) {
-                        JOptionPane.showMessageDialog(frame, "Registrazione avvenuta con successo.", "Esito registrazione", JOptionPane.INFORMATION_MESSAGE);
+                        WQClientGUIPopup.showMessageDialog(frame, "Registrazione avvenuta con successo.", "Esito registrazione");
                         usernameInput.setText("");
                         passwordInput.setText("");
                     }
                     else if (n==-1) {
-                        JOptionPane.showMessageDialog(frame, "Username già registrato, registrazione non eseguita.", "Esito registrazione", JOptionPane.ERROR_MESSAGE);
+                        WQClientGUIPopup.showMessageDialog(frame, "Username già registrato, registrazione non eseguita.", "Esito registrazione");
                         usernameInput.setText("");
                         passwordInput.setText("");
                     }
-                    else if (n==-2) JOptionPane.showMessageDialog(frame, "Password vuota, registrazione fallita.", "Esito registrazione", JOptionPane.ERROR_MESSAGE);
-                    else if (n==-3) JOptionPane.showMessageDialog(frame, "Errore di comunicazione col server, riprovare.", "Esito registrazione", JOptionPane.ERROR_MESSAGE);
+                    else if (n==-2) WQClientGUIPopup.showMessageDialog(frame, "Password vuota, registrazione fallita.", "Esito registrazione"); 
+                    else if (n==-3) WQClientGUIPopup.showMessageDialog(frame, "Errore di comunicazione col server, riprovare.", "Esito registrazione");
                 }
             }
         });
@@ -279,10 +283,9 @@ public class WQClientGUI {
         loginPanelConstraints.gridx = 1;
         loginPanelConstraints.gridy = 3;
         loginPanel.add(loginButton, loginPanelConstraints);
-
-        // LOGIN PANEL END
+        // Fine inizializzazione schermata di login e registrazione
         
-        // TOP PANEL START
+        // Inizializzo il pannello con le informazioni dell'utente
         topPanel = new JPanel();
         topPanel.setLayout(new GridBagLayout());
         GridBagConstraints topPanelConstraints = new GridBagConstraints();
@@ -307,9 +310,9 @@ public class WQClientGUI {
         topPanelConstraints.insets.left = 30;
         topPanelConstraints.insets.right = 10;
         topPanel.add(pointsLogged, topPanelConstraints);
-        // TOP PANEL END
+        // Fine inizializzazione pannello con informazioni utente
 
-        // SETTINGS PANEL START
+        // Inizializzo la schermata principale
         settingsPanel = new JPanel();
         settingsPanel.setBackground(LIGHT_BLUE);
         settingsPanel.setLayout(new GridBagLayout());
@@ -321,7 +324,8 @@ public class WQClientGUI {
         addFriendButton.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                String friendName = JOptionPane.showInputDialog(frame, "Chi vuoi aggiungere come amico?", null);
+                String friendName = WQClientGUIPopup.showInputDialog(frame, WQClientGUIPopup.ADDFRIEND_INPUT);
+                // String friendName = JOptionPane.showInputDialog(frame, "Chi vuoi aggiungere come amico?", null);
                 if (friendName!=null && !friendName.isBlank() && !friendName.isEmpty()) {
                     try {Thread.sleep(100);}
                     catch (InterruptedException e) {}
@@ -347,6 +351,7 @@ public class WQClientGUI {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 if (challenger==null) {
+                    // String friendName = WQClientGUIPopup.showInputDialog(frame, WQClientGUIPopup.CHALLENGE_INPUT);
                     String friendName = JOptionPane.showInputDialog(frame, "Chi vuoi sfidare?", null);
                     int n = WQClientLink.client.send("challenge " + friendName);
                     // if (n==1) JOptionPane.showMessageDialog(frame, "Sfida inviata.", "Invio sfida.", JOptionPane.INFORMATION_MESSAGE);
@@ -355,6 +360,7 @@ public class WQClientGUI {
                     challengerLabel.setText("Sfida contro " + friendName);
                 }
                 else {
+                    // WQClientGUIPopup.showMessageDialog(frame, "Stai già aspettando una risposta ad una sfida.", "Errore sfida.");
                     JOptionPane.showMessageDialog(frame, "Stai già aspettando una risposta ad una sfida.", "Errore sfida.", JOptionPane.ERROR_MESSAGE);
                 }
                 
@@ -437,10 +443,9 @@ public class WQClientGUI {
         settingsPanel.getLayout().preferredLayoutSize(frame);
         settingsPanel.add(textAreaAmiciOnline, settingsPanelConstraints);
         settingsPanelConstraints.insets.top = 20;
-        
-        //SETTIMGS PANEL END
+        // Fine inizializzazione schermata principale
 
-        // CHALLENGE PANEL START
+        // Inizializzo la schermata di sfida
         challengePanel = new JPanel();
         challengePanel.setBackground(LIGHT_BLUE);
         challengePanel.setLayout(new GridBagLayout());
@@ -502,7 +507,6 @@ public class WQClientGUI {
             }
         });
 
-        // se premo invio durante la digitazione della traduzione è come se avessi cliccato il bottone "Traduci"
         translationInput.addKeyListener(new KeyAdapter(){
             @Override
             public void keyPressed(KeyEvent e){
@@ -518,35 +522,26 @@ public class WQClientGUI {
         challengePanelConstraints.gridwidth = 1;
         challengePanel.getLayout().preferredLayoutSize(frame);
         challengePanel.add(translateButton, challengePanelConstraints);
-        // CHALLENGE PANEL END
+        // Fine inizializzazione della schermata di sfida
 
-        
         frame.add(loginPanel, BorderLayout.CENTER);
         // frame.add(topPanel, BorderLayout.NORTH);
         // frame.add(settingsPanel, BorderLayout.CENTER);
         // frame.add(challengePanel, BorderLayout.CENTER);
 
-        
         frame.setSize(400,300);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
     public int challengeDialog(String sfidante) {
-        int result = JOptionPane.showConfirmDialog(frame, sfidante + " ti sta sfidando!\nAccetti la sfida?", "Sfida", JOptionPane.YES_NO_OPTION);
-        this.challenger = sfidante;
-        this.challengerLabel.setText("Sfida contro " + this.challenger);
+        int result = WQClientGUIPopup.showChallengeDialog(frame, sfidante);
+        // int result = JOptionPane.showConfirmDialog(frame, sfidante + " ti sta sfidando!\nAccetti la sfida?", "Sfida", JOptionPane.YES_NO_OPTION);
+        if (result==JOptionPane.YES_OPTION); {
+            this.challenger = sfidante;
+            this.challengerLabel.setText("Sfida contro " + this.challenger);
+        }
         return result;
-        // int result;
-        // JFrame challengeDialogFrame = new JFrame("Sfida");
-        // JLabel challenger = new JLabel(sfidante + "ti sta sfidando!");
-        // JButton acceptButton = new JButton("Accetta");
-        // acceptButton.addActionListener(new java.awt.event.ActionListener() {
-        //     @Override
-        //     public void actionPerformed(java.awt.event.ActionEvent evt) {
-        //         result = JOptionPane.YES_OPTION;
-        //     }
-        // });
     }
 
     /**
@@ -625,7 +620,7 @@ public class WQClientGUI {
         textAreaAmiciOnline.setText("");
         String[] lista = friends.split(" ");
         for (int i=0; i<lista.length; i++) {
-            textAreaAmiciOnline.setText(textAreaAmiciOnline.getText() + lista[i] + "\n");
+            textAreaAmiciOnline.append(lista[i] + "\n");
         }
     }
 
@@ -635,17 +630,21 @@ public class WQClientGUI {
      * @param newPoints punteggio aggiornato dell'utente ricevuto dal server
      */
     public void challengeResultDialog(String outcome, int newPoints) {
+        this.challenger = null;
         // vittoria
         if (outcome=="challengewon") {
-            JOptionPane.showMessageDialog(frame, "Hai vinto la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.", JOptionPane.INFORMATION_MESSAGE);
+            WQClientGUIPopup.showMessageDialog(frame, "Hai vinto la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.");
+            // JOptionPane.showMessageDialog(frame, "Hai vinto la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.", JOptionPane.INFORMATION_MESSAGE);
         }
         // sconfitta
         else if (outcome=="challengelost") {
-            JOptionPane.showMessageDialog(frame, "Hai perso la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.", JOptionPane.INFORMATION_MESSAGE);
+            WQClientGUIPopup.showMessageDialog(frame, "Hai perso la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.");
+            // JOptionPane.showMessageDialog(frame, "Hai perso la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.", JOptionPane.INFORMATION_MESSAGE);
         }
         // pareggio
         else if (outcome=="challengetie") {
-            JOptionPane.showMessageDialog(frame, "Hai pareggiato!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.", JOptionPane.INFORMATION_MESSAGE);
+            WQClientGUIPopup.showMessageDialog(frame, "Hai pareggiato!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.");
+            // JOptionPane.showMessageDialog(frame, "Hai pareggiato!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
@@ -697,11 +696,12 @@ public class WQClientGUI {
             
             frameClassifica.add(panelClassifica);
             frameClassifica.pack();
-            frameClassifica.setLocationRelativeTo(null);
+            frameClassifica.setLocation(frame.getX() + frame.getWidth()/2 - frameClassifica.getWidth()/2, frame.getY() + frame.getHeight()/2 - frameClassifica.getHeight()/2);
             frameClassifica.setVisible(true);
         }
         else {
-            JOptionPane.showMessageDialog(frame, "Non hai ancora amici.", "Classifica amici di " + this.username, JOptionPane.INFORMATION_MESSAGE);
+            WQClientGUIPopup.showMessageDialog(frame, "Non hai ancora amici.", "Classifica amici di " + this.username);
+            // JOptionPane.showMessageDialog(frame, "Non hai ancora amici.", "Classifica amici di " + this.username, JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
@@ -750,12 +750,13 @@ public class WQClientGUI {
             panelLista.add(textAreaLista, constraints);
             frameLista.add(panelLista);
             frameLista.pack();
-            frameLista.setLocationRelativeTo(null);
+            frameLista.setLocation(frame.getX() + frame.getWidth()/2 - frameLista.getWidth()/2, frame.getY() + frame.getHeight()/2 - frameLista.getHeight()/2);
             frameLista.setVisible(true);
         }
 
         else {
-            JOptionPane.showMessageDialog(frame, "Non hai ancora amici.", "Lista amici di " + this.username, JOptionPane.INFORMATION_MESSAGE);
+            WQClientGUIPopup.showMessageDialog(frame, "Non hai ancora amici.", "Classifica amici di " + this.username);
+            // JOptionPane.showMessageDialog(frame, "Non hai ancora amici.", "Lista amici di " + this.username, JOptionPane.INFORMATION_MESSAGE);
         } 
         
     }

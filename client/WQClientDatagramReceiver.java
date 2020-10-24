@@ -65,11 +65,10 @@ public class WQClientDatagramReceiver implements Runnable {
                     else { 
                         sfidaInCorso = true;
                         System.out.println(">> CLIENT UDP RECEIVER >> Sfida ricevuta.");
-                        int n = WQClientLink.gui.challengeDialog(ricevuta.split(" ")[1]);
+                        int n = WQClientLink.gui.challengeDialog(ricevuta.split(" ")[1]); // invio il nome dello sfidante
 
                         // l'utente accetta la sfida
                         if(n== JOptionPane.YES_OPTION) { 
-                            
                             System.out.println(">> CLIENT UDP RECEIVER >> Sfida accettata.");
                             buffer = "challengeresponse OK".getBytes(StandardCharsets.UTF_8);
                             InetAddress indirizzo = datagramPacket.getAddress();
@@ -82,6 +81,7 @@ public class WQClientDatagramReceiver implements Runnable {
                         // l'utente rifiuta la sfida
                         else { 
                             sfidaInCorso = false;
+                            WQClientLink.gui.challenger = null;
                             System.out.println(">> CLIENT UDP RECEIVER >> Sfida rifiutata.");
                             buffer = "challengeresponse NO".getBytes(StandardCharsets.UTF_8);
                             InetAddress indirizzo = datagramPacket.getAddress();

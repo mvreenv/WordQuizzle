@@ -112,7 +112,7 @@ public class WQManager implements Runnable {
      * @param nickSfidante 
      * @param porta gli passo la porta di ascolto del server
      */
-    public DatagramSocket challenge(String nickSfidante, int porta) {
+    public DatagramSocket challengeRequest(String nickSfidante, int porta) {
         
         try {
             DatagramSocket datagramSocket;
@@ -122,7 +122,7 @@ public class WQManager implements Runnable {
             byte[] buffer = ("challengerequest " + nickSfidante).getBytes(StandardCharsets.UTF_8);
             DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
             datagramSocket.send(datagramPacket);
-            System.out.println(">> MANAGER " + this.username + " INVIO UDP >> " + StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString() + " - indirizzo " + datagramPacket.getAddress() + ":" + datagramPacket.getPort());
+            // System.out.println(">> MANAGER " + this.username + " INVIO UDP >> " + StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString() + " - indirizzo " + datagramPacket.getAddress() + ":" + datagramPacket.getPort());
 
             try {
                 buffer = new byte[256];
@@ -432,9 +432,10 @@ public class WQManager implements Runnable {
  
             } while(isOnline);
             
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
+        } catch (Exception e) { // una Socket si è disconnessa
+            // System.out.println(">> MANAGER >> Socket chiusa.");
+            // System.out.println(e.getMessage());
+            // e.printStackTrace();
         }
 
         // isOnline è diventato false 

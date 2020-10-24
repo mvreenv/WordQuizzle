@@ -98,7 +98,7 @@ public class WQClient {
             // connessione TCP al server
             socket = SocketChannel.open();
             System.out.println(">> CLIENT >> Connessione in corso sulla porta " + (port));
-            socket.connect(new InetSocketAddress("127.0.0.1", port)); // indirizzo di loopback (perché )il server gira sulla stessa macchina)
+            socket.connect(new InetSocketAddress("127.0.0.1", port)); // indirizzo di loopback perché il server gira sulla stessa macchina)
             socket.configureBlocking(false);
             Selector selector = Selector.open();
             key = socket.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
@@ -209,19 +209,12 @@ public class WQClient {
 
             ByteBuffer buffer = ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8));
 
-            // // se sto inviando una risposta e il timer è in funzione lo annullo
-            // if (message.contains("challengeanswer") && translationTimer!=null) {
-            //     translationTimer.cancel();
-            //     translationTimer = null;
-                
-            // }
-
             int n;
             do {
                 n = ((SocketChannel)key.channel()).write(buffer);
             } while (n>0);
 
-            // messaggi di risposta per aggiungi_amico per dare feedback all'utente tramite gui client
+            // messaggi di risposta a addfriend per dare feedback all'utente tramite gui client
             if(message.split(" ")[0].equals("addfriend")) {
                 buffer.clear();
                 buffer = ByteBuffer.allocate(1024);
@@ -270,7 +263,7 @@ public class WQClient {
      * @return 1 se la stringa è elaborata con successo, 0 se la stringa è formattata male
      */
     public int receive(String received) {
-        // il server invia comandi del tipo "comando informazioni"
+        // il server invia comandi del tipo <comando informazioni>
         if(received.isEmpty() || received.isBlank() || received == null) {
             System.out.println(">> CLIENT >> Stringa comando ricevuta dal server formattata male.");
             return 0;
@@ -311,7 +304,6 @@ public class WQClient {
 
                 case "online" :
                     String amiciOnline = received.substring(comando.length()+1);
-                    // System.out.println(">> CLIENT receive >> amici online >> " + amiciOnline);
                     WQClientLink.gui.updateOnlineFriends(amiciOnline);
                     return 1;
 
@@ -333,6 +325,7 @@ public class WQClient {
                     }
                     else if (parola.equals("-1")) { // fine sfida (errore)
                         System.out.println(">> CLIENT >> Errore. Sfida terminata.");
+                        WQClientLink.gui.challenger = null;
                         WQClientDatagramReceiver.sfidaInCorso = false;
                     }
                     else if (parola.equals("-2")) { // sfida rifiutata

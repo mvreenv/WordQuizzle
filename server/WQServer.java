@@ -65,7 +65,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
         ServerSocketChannel serverSocket = null; //Socket per le connessioni in entrata
         SocketChannel socket = null; // Socket da smistare ai gestori dei singoli client
-        ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10); // gestori
+        ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(25); // gestori
 
         this.port = porta;
         this.isRunning = true;
@@ -280,7 +280,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
                 if(onlineUsers.containsKey(nickAmico)) { // controllo che nickAmico sia online
 
-                    DatagramSocket datagramSocket = onlineUsers.get(nickAmico).challenge(nickUtente, this.port); 
+                    DatagramSocket datagramSocket = onlineUsers.get(nickAmico).challengeRequest(nickUtente, this.port); 
 
                     if(datagramSocket!=null) { // la richiesta è stata accettata
 
@@ -573,7 +573,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     /**
      * Restituisce le informazioni su un utente registrato.
      * @param name username dell'utente
-     * @return le informazioni sull'utente
+     * @return l'utente
      */
     public WQUser getUser(String name) {
         if(userDB.containsKey(name)) {
