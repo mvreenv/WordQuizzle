@@ -1,7 +1,7 @@
 package client;
 
 /**
- * Classe che collega il client alla gui.
+ * Classe che collega il Client alla sua interfaccia grafica.
  * @author Marina Pierotti
  */
 
@@ -13,7 +13,7 @@ public class WQClientLink {
     public static WQClient client;
 
     /**
-     * GUI del client WordQuizzle.
+     * Interfaccia grafica del Client WordQuizzle.
      */
     public static WQClientGUI gui;
 }

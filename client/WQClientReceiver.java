@@ -2,13 +2,13 @@ package client;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Thread listener dei messaggi TCP in arrivo dal server.
+ * Thread che riceve e invia messaggi TCP da e per il Server.
+ * @author Marina Pierotti
  */
 
 public class WQClientReceiver implements Runnable {
@@ -23,6 +23,11 @@ public class WQClientReceiver implements Runnable {
      */
     private SelectionKey key;
 
+    /**
+     * Costruttore.
+     * @param s Canale di comunicazione.
+     * @param k Chiave per la comunicazione.
+     */
     public WQClientReceiver(SocketChannel s, SelectionKey k) {
         this.socket = s;
         this.key = k;
@@ -37,9 +42,8 @@ public class WQClientReceiver implements Runnable {
                 int n;
 
                 do {
-                    try { 
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
+                    try { Thread.sleep(100); } 
+                    catch (InterruptedException e) {
                         // e.printStackTrace();
                     }
                     buffer.clear();

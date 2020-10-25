@@ -1,7 +1,7 @@
 package server;
 
 /**
- * Inferfaccia del server WordQuizzle che raccoglie i requisiti del progetto.
+ * Inferfaccia del server WordQuizzle che raccoglie i requisiti della specifica del progetto.
  * @author Marina Pierotti
  */
 

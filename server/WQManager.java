@@ -1,15 +1,10 @@
 package server;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.lang.reflect.Type;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -19,13 +14,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
-
-import org.w3c.dom.UserDataHandler;
-
-import client.WQClientLink;
-import common.WQUser;
 
 /**
  * Thread gestore della comunicazione dal server alla singola istanza client.
@@ -130,7 +118,7 @@ public class WQManager implements Runnable {
                 datagramSocket.receive(datagramPacket);
                 String ricevuta = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(datagramPacket.getData())).toString();
                 ricevuta.stripTrailing();
-                System.out.println(">> MANAGER " + this.username + " >> RICEZIONE UDP >> " + ricevuta);
+                // System.out.println(">> MANAGER " + this.username + " >> RICEZIONE UDP >> " + ricevuta);
                 if (ricevuta.split(" ")[0].equals("challengeresponse")) {
                     // ricevo 'challengeresponse OK', 'challengeresponse NO' o 'challengeresponse BUSY'
                     String risposta = ricevuta.split(" ")[1];
@@ -157,7 +145,7 @@ public class WQManager implements Runnable {
             }
 
         } catch (IOException e) {
-            System.out.println(">> MANAGER >> Eccezione Challenge >> " + e.getMessage());
+            System.out.println(">> MANAGER >> Eccezione sfida >> " + e.getMessage());
             e.printStackTrace();
             return null;
         } 
@@ -268,7 +256,7 @@ public class WQManager implements Runnable {
                                 if(this.username == null) {
                                     String user = received.split(" ")[1];
                                     String pw = received.split(" ")[2];
-                                    System.out.println(">> MANAGER >> Verifica credenziali " + user + " " + pw);
+                                    // System.out.println(">> MANAGER >> Verifica credenziali " + user + " " + pw);
                                     int result = this.server.login(user, pw, this);
                                     // login effettuato con successo
                                     if(result == 0) { 
@@ -309,7 +297,7 @@ public class WQManager implements Runnable {
                                     }
 
                                     // messaggi di errore sul login
-                                    else if (result==-1) {
+                                    else if (result==-1) { // la password è errata
                                         messaggio = "answer LOGINERR1";
                                         ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                         do {
@@ -317,7 +305,7 @@ public class WQManager implements Runnable {
                                         } while (n>0);
                                         isOnline = false;
                                     }
-                                    else if (result==-2) {
+                                    else if (result==-2) { // l'utente non è registrato
                                         messaggio = "answer LOGINERR2";
                                         ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                         do {
@@ -325,7 +313,7 @@ public class WQManager implements Runnable {
                                         } while (n>0);
                                         isOnline = false;
                                     }
-                                    else if (result==-3) {
+                                    else if (result==-3) { // l'utente è già loggato
                                         messaggio = "answer LOGINERR3";
                                         ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                         do {
@@ -344,7 +332,7 @@ public class WQManager implements Runnable {
                                 break;
 
                             case "addfriend" : 
-                                System.out.println(">> MANAGER >> verifica aggiungi_amico " + received.split(" ")[1] + " " + received.split(" ")[2]);
+                                // System.out.println(">> MANAGER >> verifica aggiungi_amico " + received.split(" ")[1] + " " + received.split(" ")[2]);
                                 int result = this.server.aggiungi_amico(received.split(" ")[1], received.split(" ")[2]);
                                 if (result==0) { // la registrazione dell'amicizia è avvenuta
                                     messaggio = "answer ADDFRIENDOK";
@@ -387,19 +375,19 @@ public class WQManager implements Runnable {
                                 break;
 
                             case "friendlist" :
-                                System.out.println(">> MANAGER >> recupero lista completa amici di " + username);
+                                // System.out.println(">> MANAGER >> recupero lista completa amici di " + username);
                                 messaggio = "friendlist " + this.server.lista_amici(username);
                                 send(messaggio);
                                 break;
                             
                             case "leaderboard" :
-                                System.out.println(">> MANAGER >> recupero classifica amici di " + username);
+                                // System.out.println(">> MANAGER >> recupero classifica amici di " + username);
                                 messaggio = "leaderboard " + this.server.mostra_classifica(username);
                                 send(messaggio);
                                 break;
 
                             case "userpoints" :
-                                System.out.println(">> MANAGER >> recupero il punteggio di " + username);
+                                // System.out.println(">> MANAGER >> recupero il punteggio di " + username);
                                 messaggio = "userpoints " + this.server.getUser(received.split(" ")[1]).points;
                                 send(messaggio);
                                 break;
@@ -417,7 +405,7 @@ public class WQManager implements Runnable {
 
                 }
 
-                else { // words != null
+                else { // words != null (è stata ricevuta una lista di parole per una sfida)
                     // System.out.println("Parole sfida: ");
                     // for (String parola : words.keySet()) {
                     //     System.out.print(parola + ": ");
@@ -440,7 +428,7 @@ public class WQManager implements Runnable {
 
         // isOnline è diventato false 
         if (this.username != null) { 
-            System.out.println(">> MANAGER >> " + this.username + " è andato offline.");
+            System.out.println(">> MANAGER >> " + this.username + " si è disconnesso.");
             this.server.logout(username);
         }
     }

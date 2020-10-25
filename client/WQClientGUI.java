@@ -9,28 +9,20 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.LayoutManager;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.io.*;
 import java.io.StringReader;
 import java.lang.reflect.Type;
-import java.security.Key;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
-import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
@@ -39,8 +31,7 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 
 /**
- * Classe che gestisce l'interfaccia grafica del client di WordQuizzle.
- * 
+ * Classe che gestisce l'interfaccia grafica del Client di WordQuizzle.
  * @author Marina Pierotti
  */
 
@@ -60,7 +51,7 @@ public class WQClientGUI {
     private JFrame frame;
 
     /**
-     * Pannello di login coi suoi componenti
+     * Pannello di login coi suoi componenti.
      */
     private JPanel loginPanel;
     private JTextField usernameInput; // campo per inserire lo username
@@ -69,8 +60,7 @@ public class WQClientGUI {
     private JButton registerButton; // se premuto tenta di registrare un nuovo utente con usernameInput e passwordInput
 
     /**
-     * Pannello in alto alla finestra che mostra informazioni sullo username e il
-     * punteggio
+     * Pannello in alto alla finestra che mostra informazioni sullo username e il punteggio totale.
      */
     private JPanel topPanel;
     private String username; // username dell'utente loggato
@@ -79,7 +69,7 @@ public class WQClientGUI {
     private JLabel pointsLogged; // label per i punti
 
     /**
-     * Panello che mostra le operazioni svolgibili dall'utente dopo il login
+     * Panello che mostra le operazioni svolgibili dall'utente dopo il login.
      */
     private JPanel settingsPanel;
     private JButton addFriendButton; // bottone per aggiungere un amico
@@ -90,12 +80,12 @@ public class WQClientGUI {
     private JTextArea textAreaAmiciOnline;
 
     /**
-     * Username dell'utente sfidato
+     * Username dell'utente sfidato.
      */
     public String challenger;
 
     /**
-     * Pannello dell'interfaccia della sfida
+     * Pannello dell'interfaccia della sfida coi suoi componenti.
      */
     private JPanel challengePanel;
     private JLabel challengerLabel; // label col nome dell'aversario
@@ -103,6 +93,9 @@ public class WQClientGUI {
     private JTextField translationInput; // campo per inserire la parola tradotta
     private JButton translateButton; // bottone per inviare il contenuto di translationInput
 
+    /**
+     * Costruttore.
+     */
     public WQClientGUI() {
 
         super();
@@ -222,17 +215,25 @@ public class WQClientGUI {
                 if(user!=null && !user.isEmpty() && !user.isBlank()) {
                     int n = WQClientLink.client.registra_utente(user, pw);
                     if (n==0) {
+                        System.out.println(">> CLIENT >> Registrazione di " + user + " avvenuta con successo.");
                         WQClientGUIPopup.showMessageDialog(frame, "Registrazione avvenuta con successo.", "Esito registrazione");
                         usernameInput.setText("");
                         passwordInput.setText("");
                     }
                     else if (n==-1) {
+                        System.out.println(">> CLIENT >> Username già registrato.");
                         WQClientGUIPopup.showMessageDialog(frame, "Username già registrato, registrazione non eseguita.", "Esito registrazione");
                         usernameInput.setText("");
                         passwordInput.setText("");
                     }
-                    else if (n==-2) WQClientGUIPopup.showMessageDialog(frame, "Password vuota, registrazione fallita.", "Esito registrazione"); 
-                    else if (n==-3) WQClientGUIPopup.showMessageDialog(frame, "Errore di comunicazione col server, riprovare.", "Esito registrazione");
+                    else if (n==-2) {
+                        System.out.println(">> CLIENT >> Password vuota, registrazione non eseguita.");
+                        WQClientGUIPopup.showMessageDialog(frame, "Password vuota, registrazione non eseguita.", "Esito registrazione"); 
+                    }
+                    else if (n==-3) {
+                        System.out.println(">> CLIENT >> Errore di connessione al server.");
+                        WQClientGUIPopup.showMessageDialog(frame, "Errore di connessione al Server.", "Esito registrazione");
+                    }
                 }
             }
         });
@@ -324,17 +325,16 @@ public class WQClientGUI {
         addFriendButton.addActionListener(new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                String friendName = WQClientGUIPopup.showInputDialog(frame, WQClientGUIPopup.ADDFRIEND_INPUT);
-                // String friendName = JOptionPane.showInputDialog(frame, "Chi vuoi aggiungere come amico?", null);
-                if (friendName!=null && !friendName.isBlank() && !friendName.isEmpty()) {
-                    try {Thread.sleep(100);}
-                    catch (InterruptedException e) {}
+                String friendName = JOptionPane.showInputDialog(frame, "Chi vuoi aggiungere come amico?", null);
+                if (friendName!=null && !friendName.isBlank() && !friendName.isEmpty()) { 
+                    try { Thread.sleep(130);}
+                    catch (InterruptedException e ) { e.printStackTrace(); }
                     int n = WQClientLink.client.send("addfriend " + username + " " + friendName);
-                    if (n==1) JOptionPane.showMessageDialog(frame, friendName + " aggiunto alla tua lista amici.", "Amico", JOptionPane.INFORMATION_MESSAGE);
-                    else if (n==0) JOptionPane.showMessageDialog(frame, "Errore formattazione dati.", "Errore amicizia.", JOptionPane.ERROR_MESSAGE);
-                    else if (n==-1) JOptionPane.showMessageDialog(frame, "Uno dei due utenti non esiste.", "Errore amicizia.", JOptionPane.ERROR_MESSAGE);
-                    else if (n==-2) JOptionPane.showMessageDialog(frame, "Sei già amico di " + friendName + ".", "Errore amicizia.", JOptionPane.ERROR_MESSAGE);
-                    else if (n==-3) JOptionPane.showMessageDialog(frame, "Non puoi aggiungere te stesso come amico.", "Errore amicizia.", JOptionPane.ERROR_MESSAGE);
+                    if (n==1) WQClientGUIPopup.showMessageDialog(frame, friendName + " aggiunto alla tua lista amici.", "Amico");
+                    else if (n==0) WQClientGUIPopup.showMessageDialog(frame, "Errore formattazione dati.", "Errore amicizia.");
+                    else if (n==-1) WQClientGUIPopup.showMessageDialog(frame, friendName + " non è un utente registrato.", "Errore amicizia.");
+                    else if (n==-2) WQClientGUIPopup.showMessageDialog(frame, "Sei già amico di " + friendName + ".", "Errore amicizia.");
+                    else if (n==-3) WQClientGUIPopup.showMessageDialog(frame, "Non puoi aggiungere te stesso come amico.", "Errore amicizia.");
                 }
                 
             }
@@ -351,17 +351,15 @@ public class WQClientGUI {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 if (challenger==null) {
-                    // String friendName = WQClientGUIPopup.showInputDialog(frame, WQClientGUIPopup.CHALLENGE_INPUT);
                     String friendName = JOptionPane.showInputDialog(frame, "Chi vuoi sfidare?", null);
                     int n = WQClientLink.client.send("challenge " + friendName);
-                    // if (n==1) JOptionPane.showMessageDialog(frame, "Sfida inviata.", "Invio sfida.", JOptionPane.INFORMATION_MESSAGE);
-                    if (n==0) JOptionPane.showMessageDialog(frame, "Errore invio sfida.", "Invio sfida.", JOptionPane.ERROR_MESSAGE);
+                    // if (n==1) WQClientGUIPopup.showMessageDialog(frame, "Sfida inviata.", "Invio sfida.");
+                    if (n==0) WQClientGUIPopup.showMessageDialog(frame, "Errore invio sfida.", "Invio sfida.");
                     challenger = friendName;
                     challengerLabel.setText("Sfida contro " + friendName);
                 }
                 else {
-                    // WQClientGUIPopup.showMessageDialog(frame, "Stai già aspettando una risposta ad una sfida.", "Errore sfida.");
-                    JOptionPane.showMessageDialog(frame, "Stai già aspettando una risposta ad una sfida.", "Errore sfida.", JOptionPane.ERROR_MESSAGE);
+                    WQClientGUIPopup.showMessageDialog(frame, "Stai già aspettando una risposta ad una sfida.", "Errore sfida.");
                 }
                 
             }
@@ -377,7 +375,7 @@ public class WQClientGUI {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 int n = WQClientLink.client.send("leaderboard " + WQClientLink.gui.username);
-                if (n==0) JOptionPane.showMessageDialog(frame, "Errore classifica.", "Errore.", JOptionPane.ERROR_MESSAGE);
+                if (n==0) WQClientGUIPopup.showMessageDialog(frame, "Errore classifica.", "Errore.");
             }
         });
         settingsPanelConstraints.gridx = 0;
@@ -391,7 +389,7 @@ public class WQClientGUI {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 int n = WQClientLink.client.send("friendlist " + WQClientLink.gui.username);
-                if (n==0) JOptionPane.showMessageDialog(frame, "Errore lista amici.", "Errore.", JOptionPane.ERROR_MESSAGE);
+                if (n==0) WQClientGUIPopup.showMessageDialog(frame, "Errore lista amici.", "Errore.");
             }
         });
         settingsPanelConstraints.gridx = 0;
@@ -455,8 +453,7 @@ public class WQClientGUI {
 
         challengerLabel = new JLabel("Sfida contro " + challenger);
         challengerLabel.setForeground(WHITE);
-        challengerLabel.setBackground(Color.RED);
-        challengePanelConstraints.gridx = 1;
+        challengePanelConstraints.gridx = 0;
         challengePanelConstraints.gridy = 0;
         challengePanelConstraints.insets.left = 30;
         challengePanel.add(challengerLabel, challengePanelConstraints);
@@ -466,7 +463,7 @@ public class WQClientGUI {
         currentWord.setFont(challengeFont);
         currentWord.setForeground(WHITE);
         currentWord.setBackground(Color.GREEN);
-        challengePanelConstraints.gridx = 1;
+        challengePanelConstraints.gridx = 0;
         challengePanelConstraints.gridy = 1;
         challengePanelConstraints.insets.top = 40;
         challengePanelConstraints.insets.left = 30;
@@ -514,7 +511,7 @@ public class WQClientGUI {
             }
         });
 
-        challengePanelConstraints.gridx = 2;
+        challengePanelConstraints.gridx = 1;
         challengePanelConstraints.gridy = 3;
         challengePanelConstraints.insets.top = 10;
         challengePanelConstraints.insets.left = 0;
@@ -524,10 +521,8 @@ public class WQClientGUI {
         challengePanel.add(translateButton, challengePanelConstraints);
         // Fine inizializzazione della schermata di sfida
 
+        // Panello visibile all'avvio del Client
         frame.add(loginPanel, BorderLayout.CENTER);
-        // frame.add(topPanel, BorderLayout.NORTH);
-        // frame.add(settingsPanel, BorderLayout.CENTER);
-        // frame.add(challengePanel, BorderLayout.CENTER);
 
         frame.setSize(400,300);
         frame.setLocationRelativeTo(null);
@@ -536,7 +531,6 @@ public class WQClientGUI {
 
     public int challengeDialog(String sfidante) {
         int result = WQClientGUIPopup.showChallengeDialog(frame, sfidante);
-        // int result = JOptionPane.showConfirmDialog(frame, sfidante + " ti sta sfidando!\nAccetti la sfida?", "Sfida", JOptionPane.YES_NO_OPTION);
         if (result==JOptionPane.YES_OPTION); {
             this.challenger = sfidante;
             this.challengerLabel.setText("Sfida contro " + this.challenger);
@@ -548,7 +542,6 @@ public class WQClientGUI {
      * Rende visibile la schermata di sfida.
      */
     public void startChallenge() {
-        // matchPoints = 0;
         frame.invalidate();
         frame.getContentPane().removeAll();
         frame.add(challengePanel);
@@ -557,7 +550,7 @@ public class WQClientGUI {
     }
 
     /**
-     * Rende visibile la schermata coi bottoni se l'utente è sempre connesso, altrimenti la schermata di login.
+     * Rende visibile la schermata principale quando termina una sfida.
      */
     public void endChallenge () {
         translationInput.setText("");
@@ -579,8 +572,16 @@ public class WQClientGUI {
     }
 
     /**
-     * Imposta la parola da tradurre per il round corrente della sfida.
-     * @param parola la parola da tradurre
+     * Restituisce la finestra principale della GUI.
+     * @return La finestra della GUI.
+     */
+    public JFrame getFrame() {
+        return this.frame;
+    }
+
+    /**
+     * Imposta la parola da tradurre per il round corrente della sfida e aggiorna la finestra.
+     * @param parola La parola da tradurre.
      */
     public void setCurrentWord(String parola) {
         frame.invalidate();
@@ -593,7 +594,7 @@ public class WQClientGUI {
 
     /**
      * Imposta il valore dei punti.
-     * @param punti i punti
+     * @param punti I punti da impostare.
      */
     public void setPoints(int punti) {
         this.points = punti;
@@ -602,8 +603,8 @@ public class WQClientGUI {
 
     /**
      * Imposta username e punti dell'utente collegato con questo client.
-     * @param user lo username che si vuole impostare
-     * @param p i punti che si vogliono impostare
+     * @param user Lo username che si vuole impostare.
+     * @param p I punti che si vogliono impostare.
      */    
     public void setUser(String user, int p) {
         this.username = user;
@@ -614,7 +615,7 @@ public class WQClientGUI {
 
     /**
      * Aggiorna la lista degli amici online.
-     * @param friends nomi degli amici online separati da uno spazio (" ")
+     * @param friends Nomi degli amici online separati da uno spazio (" ").
      */
     public void updateOnlineFriends(String friends) {
         textAreaAmiciOnline.setText("");
@@ -626,31 +627,28 @@ public class WQClientGUI {
 
     /**
      * Mostra una finestra di dialogo con il risultato della sfida.
-     * @param outcome riceve "challengewon" se la sfida è stata vinta, "challengelost" se è stata persa, o "challengetie" se c'è stato un pareggio
-     * @param newPoints punteggio aggiornato dell'utente ricevuto dal server
+     * @param outcome Riceve "challengewon" se la sfida è stata vinta, "challengelost" se è stata persa, o "challengetie" se c'è stato un pareggio.
+     * @param newPoints Punteggio aggiornato dell'utente ricevuto dal Server.
      */
     public void challengeResultDialog(String outcome, int newPoints) {
         this.challenger = null;
         // vittoria
         if (outcome=="challengewon") {
             WQClientGUIPopup.showMessageDialog(frame, "Hai vinto la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.");
-            // JOptionPane.showMessageDialog(frame, "Hai vinto la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.", JOptionPane.INFORMATION_MESSAGE);
         }
         // sconfitta
         else if (outcome=="challengelost") {
             WQClientGUIPopup.showMessageDialog(frame, "Hai perso la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.");
-            // JOptionPane.showMessageDialog(frame, "Hai perso la sfida!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.", JOptionPane.INFORMATION_MESSAGE);
         }
         // pareggio
         else if (outcome=="challengetie") {
             WQClientGUIPopup.showMessageDialog(frame, "Hai pareggiato!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.");
-            // JOptionPane.showMessageDialog(frame, "Hai pareggiato!\nHai guadagnato " + (newPoints - this.points) + " punti.\nAdesso sei a " + newPoints + " punti.", "Risultato sfida.", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
     /**
      * Apre una finestra aggiuntiva in cui viene mostrata la classifica degli amici dell'utente.
-     * @param classificaJson contiene la classifica ricevuta dal server in formato JSON
+     * @param classificaJson La classifica ricevuta dal server in formato JSON.
      */
     public void mostraClassifica(String classificaJson) {
         Gson gson2 = new Gson();
@@ -675,7 +673,7 @@ public class WQClientGUI {
             textAreaClassifica.setEditable(false);
                 int i = 1;
                 for(WQUser amico : classificaArray) {
-                    textAreaClassifica.setText(textAreaClassifica.getText() + i + ") " + amico.username + " - " + amico.points + "punti\n");
+                    textAreaClassifica.setText(textAreaClassifica.getText() + i + ") " + amico.username + " - " + amico.points + " punti\n");
                     i++;
                 }
             panelClassifica.setLayout(new GridBagLayout());
@@ -707,7 +705,7 @@ public class WQClientGUI {
 
     /**
      * Apre una finestra aggiuntiva in cui viene mostrata la lista completa degli amici (anche offline) dell'utente.
-     * @param listaJson contiene la lista degli amici ricevuta dal server in formato JSON
+     * @param listaJson La lista degli amici ricevuta dal server in formato JSON.
      */
     public void listaAmici(String listaJson) {
         Gson gson1 = new Gson();
@@ -760,7 +758,5 @@ public class WQClientGUI {
         } 
         
     }
-
-
 
 }

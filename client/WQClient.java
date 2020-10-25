@@ -1,10 +1,7 @@
 package client;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -15,19 +12,16 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.security.MessageDigest;
-import java.util.ArrayList;
 import java.util.Timer;
 
 import common.WQInterface;
 import common.WQUser;
 
 import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
 
 /**
  * Classe che implementa le funzionalità del client di WordQuizzle.
+ * @author Marina Pierotti
  */
 
 public class WQClient {
@@ -80,7 +74,8 @@ public class WQClient {
             n = rmi.registra_utente(nickUtente, password); // tentativo di registrazione al servizio
             return n; // 0 se la registrazione ha successo, -1 se esiste già un utente con lo stesso nickUtente, -2 se la password è vuota
         } catch (RemoteException | NotBoundException e) {
-            System.out.println(e.getMessage());
+            System.out.println(">> CLIENT >> Errore di connessione al Server.");
+            // System.out.println(e.getMessage());
         }
 
         return -3; // se ci sono errori di comunicazione
@@ -98,7 +93,7 @@ public class WQClient {
             // connessione TCP al server
             socket = SocketChannel.open();
             System.out.println(">> CLIENT >> Connessione in corso sulla porta " + (port));
-            socket.connect(new InetSocketAddress("127.0.0.1", port)); // indirizzo di loopback perché il server gira sulla stessa macchina)
+            socket.connect(new InetSocketAddress("127.0.0.1", port)); // indirizzo di loopback perché il server gira sulla stessa macchina
             socket.configureBlocking(false);
             Selector selector = Selector.open();
             key = socket.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
@@ -142,7 +137,7 @@ public class WQClient {
                     myUser = json.fromJson(received, WQUser.class);
                     if (myUser!=null) {
                         WQClientLink.gui.setUser(myUser.username, myUser.points);
-                        System.out.println(">> CLIENT >> " + myUser.username + " loggato.");
+                        System.out.println(">> CLIENT >> " + myUser.username + " si è connesso.");
                     }
 
                     // avvio il thread listener TCP del client
@@ -157,14 +152,14 @@ public class WQClient {
                         do { 
                             n = ((SocketChannel) key.channel()).write(buf); 
                         } while (n > 0);
-                        System.out.println(">> CLIENT >> Receiver UDP su porta " + datagramSocket.getLocalPort());
+                        System.out.println(">> CLIENT >> Comunicazione UDP su porta " + datagramSocket.getLocalPort());
                     } catch (Exception e) {
                         string = "challengeport -1";
                         buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
                         do { 
                             n = ((SocketChannel) key.channel()).write(buf); 
                         } while (n > 0);
-                        System.out.println(">> CLIENT >> Errore avvio Listener UDP " + e.getMessage());
+                        System.out.println(">> CLIENT >> Errore avvio comunicazione UDP " + e.getMessage());
                     }
 
                     return 0; // login avvenuto con successo
@@ -183,13 +178,17 @@ public class WQClient {
                     return -4;
             }
         } catch (IOException e) {
-            System.out.println(">> CLIENT >> Impossibile connettersi al server.");
+            System.out.println(">> CLIENT >> Connessione al server non riuscita.");
             // System.out.println(e.getMessage());
             // e.printStackTrace();
         }
         return -4; // errore generico
     }
 
+    /**
+     * Esegue il logout dell'utente.
+     * @param username L'utente.
+     */
     public void logout(String username) {
         WQClientLink.gui.setUser(null, 0);
         try {
@@ -202,7 +201,7 @@ public class WQClient {
 
     /**
      * Invia comandi al server.
-     * @return 1 l'invio ha avuto successo, 0 se c'è IOException
+     * @return 1 l'invio ha avuto successo, 0 se c'è IOException.
      */
     public int send(String message) {
         try {
@@ -229,19 +228,19 @@ public class WQClient {
                 if(risposta.split(" ")[0].equals("answer")) { 
                     switch (risposta.split(" ")[1]) {
                         case "ADDFRIENDOK" :
-                            System.out.println(">> CLIENT >> AddFriend >> Amicizia creata con successo.");
+                            // System.out.println(">> CLIENT >> AddFriend >> Amicizia creata con successo.");
                             try {Thread.sleep(100);}
                             catch (InterruptedException e) {}
                             send("online"); // aggiorno la lista degli amici online in caso l'utente appena aggiunto sia collegato per mostrarlo nella lista
                             return 1;
                         case "ADDFRIENDERR1" : // uno dei due username non esiste
-                        System.out.println(">> CLIENT >> AddFriend >> Uno dei due username non esiste.");
+                            // System.out.println(">> CLIENT >> AddFriend >> Uno dei due username non esiste.");
                             return -1;
                         case "ADDFRIENDERR2" : // la relazione di amicizia è già esistente
-                        System.out.println(">> CLIENT >> AddFriend >> La relazione di amicizia è già presente nel database.");
+                            // System.out.println(">> CLIENT >> AddFriend >> La relazione di amicizia è già presente nel database.");
                             return -2;
                         case "ADDFRIENDERR3" : // se nickUtente e nickAmico sono lo stesso username
-                        System.out.println(">> CLIENT >> AddFriend >> I due username sono uguali.");
+                            // System.out.println(">> CLIENT >> AddFriend >> I due username sono uguali.");
                             return -3;
                         default : 
                             return 0;
@@ -252,15 +251,15 @@ public class WQClient {
             }
             return 1;
         } catch (IOException e) {
-            System.out.println(">> CLIENT >> Send >> " + e.getMessage());
+            System.out.println(">> CLIENT >> " + e.getMessage());
         }
         return 0;
     }
 
     /**
      * Elabora comandi ricevuti dal server.
-     * @param received la stringa comando mandata dal server
-     * @return 1 se la stringa è elaborata con successo, 0 se la stringa è formattata male
+     * @param received La stringa comando ricevuta dal server.
+     * @return 1 se la stringa è elaborata con successo, 0 se la stringa è formattata male.
      */
     public int receive(String received) {
         // il server invia comandi del tipo <comando informazioni>
@@ -302,12 +301,12 @@ public class WQClient {
                     }
                     return 0;
 
-                case "online" :
+                case "online" : // es. online amico1 amico2 ...
                     String amiciOnline = received.substring(comando.length()+1);
                     WQClientLink.gui.updateOnlineFriends(amiciOnline);
                     return 1;
 
-                case "userpoints" :
+                case "userpoints" : // es. userpoints 25
                     int n = Integer.parseInt(received.split(" ")[1]);
                     System.out.println(">> CLIENT receive >> punti utente >> " + received.split(" ")[1]);
                     WQClientLink.gui.setPoints(n);
@@ -329,8 +328,9 @@ public class WQClient {
                         WQClientDatagramReceiver.sfidaInCorso = false;
                     }
                     else if (parola.equals("-2")) { // sfida rifiutata
-                        System.out.println(">> CLIENT >> Sfida rifiutata.");
+                        System.out.println(">> CLIENT >> La tua richiesta di sfida è stata rifiutata.");
                         WQClientLink.gui.challenger = null;
+                        WQClientGUIPopup.showMessageDialog(WQClientLink.gui.getFrame(), "La tua richiesta di sfida non è andata a buon fine.", "Sfida");
                     }
                     else if (parola.equals("-3")) { // fine sfida
                         System.out.println(">> CLIENT >> Sfida completata.");
@@ -351,17 +351,15 @@ public class WQClient {
                             WQClientDatagramReceiver.sfidaInCorso = false;
                             WQClientLink.gui.endChallenge();
                         }
-                        // translationTimer = new Timer();
-                        // translationTimer.schedule(new WQClientTimerTask(this), 10000); // 10 secondi per tradurre una parola
                     }
                     return 1;
 
-                case "leaderboard" :
+                case "leaderboard" : // leaderboard <classifica JSON>
                     if (received.split(" ").length>1) WQClientLink.gui.mostraClassifica(received.split(" ")[1]);
                     else WQClientLink.gui.mostraClassifica("");
                     return 1;
 
-                case "friendlist" :
+                case "friendlist" : // friendlist <lista JSON>
                     if (received.split(" ").length>1) WQClientLink.gui.listaAmici(received.split(" ")[1]);
                     else WQClientLink.gui.listaAmici("");
                     return 1;
@@ -377,9 +375,19 @@ public class WQClient {
     
     public static void main(final String[] args) {
 
-        int porta = Integer.parseInt(args[0]);
-        WQClient myClient = new WQClient(porta);
-        WQClientGUI myClientGUI = new WQClientGUI();
+        if(args.length>0) {
+            int porta = Integer.parseInt(args[0]);
+            if( porta<1024 || porta>49151 ) {
+                System.out.println("Scegliere un altro numero di porta.");
+            }
+            else {
+                WQClient myClient = new WQClient(porta);
+                WQClientGUI myClientGUI = new WQClientGUI();
+            }
+        }
+        else {
+            System.out.println("Scegliere un numero di porta.");
+        }
 
     }
         

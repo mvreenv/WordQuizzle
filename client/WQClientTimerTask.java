@@ -3,7 +3,7 @@ package client;
 import java.util.TimerTask;
 
 /**
- * TimerTask per la durata della sfida.
+ * TimerTask per indicare al Client che la sfida è terminata se il timer scade.
  */
 public class WQClientTimerTask extends TimerTask {
 
@@ -23,7 +23,6 @@ public class WQClientTimerTask extends TimerTask {
     @Override
     public void run() {
         client.receive("challengeround -3");
-        // client.send("challengeanswer -1");
     }
     
 }

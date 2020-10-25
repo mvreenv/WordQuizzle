@@ -133,7 +133,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         else {
             WQUser nuovoUtente = new WQUser(nickUtente, password);
             userDB.put(nickUtente, nuovoUtente);
-            System.out.println(">> Registrazione di " + nickUtente + " avvenuta.");
+            System.out.println(">> SERVER >> Registrazione di " + nickUtente + " avvenuta.");
             this.saveServer();
             return 0;
         }
@@ -212,8 +212,8 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         // controllo che nickUtente e nickAmico non siano uguali uguali
         if(!nickUtente.equals(nickAmico)) { 
             // uno dei due username non esiste
-            if(userDB.get(nickUtente).equals(null)|| userDB.get(nickAmico).equals(null)) {
-                System.out.println(">> SERVER >> Tentativo amicizia: uno dei due utenti non esiste.");
+            if(!userDB.containsKey(nickUtente)|| !userDB.containsKey(nickAmico)) {
+                System.out.println(">> SERVER >> Tentativo amicizia: " + nickAmico + " non non è registrato.");
                 return -1;
             }     
             // la relazione di amicizia è già presente nel database
@@ -228,7 +228,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             return 0;
         } 
         else {
-            System.out.println(">> SERVER >> Tentativo amicizia: i due username sono uguali.");
+            System.out.println(">> SERVER >> Tentativo amicizia: " + nickUtente + " non può aggiungere sé stesso come amico.");
             return -3;
         }
 
@@ -243,12 +243,12 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     public String lista_amici(String nickUtente) {
         // nickUtente vuoto
         if(nickUtente==null) {
-            System.out.println(">> Lista amici: lo username inserito è vuoto.");
+            System.out.println(">> SERVER >> Lista amici: lo username inserito è vuoto.");
             return null;
         }
         // lista amici vuota
         else if (userDB.get(nickUtente).friends.isEmpty()) {
-            System.out.println(">> Lista amici: " + nickUtente + " non ha ancora amici.");
+            System.out.println(">> SERVER >> Lista amici: " + nickUtente + " non ha ancora amici.");
             return null;
         }
 
@@ -257,7 +257,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             list.add(userDB.get(amico));
         }
         
-        System.out.print(">> Amici di " + nickUtente + ": " );
+        System.out.print(">> SERVER >> Amici di " + nickUtente + ": " );
         for(int i=0; i<list.size(); i++) {
             System.out.print(list.get(i).username + ", ");
         }
@@ -355,19 +355,19 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                     }
 
                     else { // sfida rifiutata, utente già occupato o timer scaduto
-                        System.out.println(">> SERVER >> SFIDA >> utente occupato o timer scaduto (DatagramSocket null)");
+                        // System.out.println(">> SERVER >> SFIDA >> utente occupato o timer scaduto.");
                         WQManager sfidante = onlineUsers.get(nickUtente);
                         sfidante.send("challengeround -2");
                     }
                 }
                 else { // nickAmico non è online
-                    System.out.println(">> SERVER >> SFIDA >> utente offline");
+                    // System.out.println(">> SERVER >> SFIDA >> utente offline.");
                     WQManager sfidante = onlineUsers.get(nickUtente);
                     sfidante.send("challengeround -2");
                 }
             }
             else { // nickUtente e nickAmico non sono amici
-                System.out.println(">> SERVER >> SFIDA >> utente non tra gli amici");
+                // System.out.println(">> SERVER >> SFIDA >> utente non tra gli amici.");
                 WQManager sfidante = onlineUsers.get(nickUtente);
                 sfidante.send("challengeround -2");
             }
@@ -383,7 +383,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
      * @param nickUtente username di cui si vuole conoscere il punteggio
      */
     public int mostra_punteggio(String nickUtente) {
-        System.out.println(">> Punteggio di " + nickUtente + ": " + userDB.get(nickUtente).points);
+        System.out.println(">> SERVER >> Punteggio di " + nickUtente + ": " + userDB.get(nickUtente).points);
         return userDB.get(nickUtente).points;
     }
 
@@ -394,12 +394,12 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
     public String mostra_classifica(String nickUtente) {
         // nickUtente vuoto
         if(nickUtente==null) {
-            System.out.println(">> Classifica amici: lo username inserito è vuoto.");
+            System.out.println(">> SERVER >> Classifica amici: lo username inserito è vuoto.");
             return null;
         }
         // lista amici vuota
         else if (userDB.get(nickUtente).friends.isEmpty()) {
-            System.out.println(">> Classifica amici: " + nickUtente + " non ha ancora amici.");
+            System.out.println(">> SERVER >> Classifica amici: " + nickUtente + " non ha ancora amici.");
             return null;
         }
 
@@ -417,7 +417,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             }
         });
         
-        System.out.print(">> Classifica degli amici di " + nickUtente + ": " );
+        System.out.print(">> SERVER >> Classifica degli amici di " + nickUtente + ": " );
         for(int i=0; i<list.size(); i++) {
             System.out.print(list.get(i).username + "("+ list.get(i).points + "), ");
         }
@@ -464,6 +464,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         }
 
         // salvo i dati del server
+        System.out.println(">> SERVER >> Sfida terminata: " + user1.username + "(" + puntiUtente1 + ") - " + user2.username + "(" + puntiUtente2 + ")");
         saveServer();
 
     }
@@ -501,7 +502,10 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             reader.setLenient(true);
             Type type = new TypeToken<HashMap<String, WQUser>>(){}.getType();
             userDB = gson.fromJson(reader, type);
-            System.out.println(">> User data (server) = " + userDB.values());
+            System.out.println(">> SERVER >>  Database utenti");
+            for(WQUser user : userDB.values()) {
+                System.out.println(user.description());
+            }
 
         } catch (IOException e) {
             System.out.println(e.getMessage());
@@ -535,7 +539,12 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
         if(userDB.size()>0){
             Gson gson = new Gson();
             int n = saveToFile("datiServer.json", gson.toJson(userDB));
-            if(n == 0) System.out.println(">> Updated user data (server) = " + userDB.values());
+            if(n == 0) {
+                System.out.println(">> SERVER >> Database utenti");
+                for(WQUser user : userDB.values()) {
+                    System.out.println(user.description());
+                }
+            }
             if(n == -1) System.out.println(">> Impossibile creare il file datiServer.");
             if(n == -2) System.out.println(">> IOException durante la scrittura sul file datiServer.");
         }
@@ -584,8 +593,18 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
     public static void main(String[] args) {
 
-        int porta = Integer.parseInt(args[0]);
-        WQServer serverprova = new WQServer(porta);
+        if(args.length>0) {
+            int porta = Integer.parseInt(args[0]);
+            if( porta<1024 || porta>49151 ) {
+                System.out.println("Scegliere un altro numero di porta.");
+            }
+            else {
+                WQServer myServer = new WQServer(porta);
+            }
+        }
+        else {
+            System.out.println("Scegliere un numero di porta.");
+        }
 
     }
 

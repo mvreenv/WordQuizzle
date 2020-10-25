@@ -3,7 +3,6 @@ package client;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +11,7 @@ import javax.swing.JOptionPane;
 
 /**
  * Thread listener dei pacchetti UDP in arrivo al client.
+ * @author Marina Pierotti
  */
 
 public class WQClientDatagramReceiver implements Runnable {
@@ -39,6 +39,7 @@ public class WQClientDatagramReceiver implements Runnable {
         while (true) {
             try {
                 
+                // vedo se ho ricevuto un pacchetto UDP
                 buffer = new byte[52];
                 datagramPacket = new DatagramPacket(buffer, buffer.length);
                 datagramSocket.receive(datagramPacket);
@@ -53,7 +54,7 @@ public class WQClientDatagramReceiver implements Runnable {
 
                     // verifica che non ci sia già una sfida in corso
                     if (sfidaInCorso) { 
-                        System.out.println(">> CLIENT UDP RECEIVER >> Sfida rifiutata (sei già occupato).");
+                        System.out.println(">> CLIENT UDP >> Sfida rifiutata (sei già occupato).");
                         buffer = "challengeresponse BUSY".getBytes(StandardCharsets.UTF_8);
                         InetAddress indirizzo = datagramPacket.getAddress();
                         int porta = datagramPacket.getPort();
@@ -64,12 +65,12 @@ public class WQClientDatagramReceiver implements Runnable {
                     // chiede all'utente cosa vuole fare con la richiesta di sfida
                     else { 
                         sfidaInCorso = true;
-                        System.out.println(">> CLIENT UDP RECEIVER >> Sfida ricevuta.");
+                        System.out.println(">> CLIENT UDP >> Sfida ricevuta.");
                         int n = WQClientLink.gui.challengeDialog(ricevuta.split(" ")[1]); // invio il nome dello sfidante
 
                         // l'utente accetta la sfida
                         if(n== JOptionPane.YES_OPTION) { 
-                            System.out.println(">> CLIENT UDP RECEIVER >> Sfida accettata.");
+                            System.out.println(">> CLIENT UDP >> Sfida accettata.");
                             buffer = "challengeresponse OK".getBytes(StandardCharsets.UTF_8);
                             InetAddress indirizzo = datagramPacket.getAddress();
                             int porta = datagramPacket.getPort();
@@ -82,7 +83,7 @@ public class WQClientDatagramReceiver implements Runnable {
                         else { 
                             sfidaInCorso = false;
                             WQClientLink.gui.challenger = null;
-                            System.out.println(">> CLIENT UDP RECEIVER >> Sfida rifiutata.");
+                            System.out.println(">> CLIENT UDP >> Sfida rifiutata.");
                             buffer = "challengeresponse NO".getBytes(StandardCharsets.UTF_8);
                             InetAddress indirizzo = datagramPacket.getAddress();
                             int porta = datagramPacket.getPort();

@@ -10,29 +10,29 @@ import java.util.ArrayList;
 public class WQUser {
 
     /**
-     * Nickname dell'utente
+     * Nickname dell'utente.
      */
     public String username;
 
     /**
-     * Password dell'utente
+     * Password dell'utente.
      */
     public String password;
 
     /** 
-     * Punteggio dell'utente
+     * Punteggio dell'utente.
      */
     public int points;
 
     /**
-     * Lista amici dell'utente
+     * Lista amici dell'utente.
      */
     public ArrayList<String> friends;
 
     /**
      * Costruttore semplice per inizializzare username e password.
-     * @param nickUtente il nickname dell'utente 
-     * @param passwordUtente la password dell'utente
+     * @param nickUtente Il nickname dell'utente.
+     * @param passwordUtente La password dell'utente.
      */
     public WQUser(String nickUtente, String passwordUtente) {
         this.username = nickUtente;
@@ -42,11 +42,11 @@ public class WQUser {
     }
 
     /**
-     * Costruttore avanzato per inserire manualmente anche punteggio e lista amici diversi da quelli di default.
-     * @param nickUtente il nickname dell'utente
-     * @param passwordUtente la password dell'utente
-     * @param punti il punteggio accumulato dall'utente
-     * @param listaAmici la lista amici dell'utente
+     * Costruttore per inserire manualmente anche punteggio e lista amici diversi da quelli di default.
+     * @param nickUtente Il nickname dell'utente.
+     * @param passwordUtente La password dell'utente.
+     * @param punti Il punteggio accumulato dall'utente.
+     * @param listaAmici La lista amici dell'utente.
      */
     public WQUser(String nickUtente, String passwordUtente, int punti, ArrayList<String> listaAmici) {
         this.username = nickUtente;
@@ -55,20 +55,23 @@ public class WQUser {
         this.friends = listaAmici;
     }
 
+    /**
+     * Fornisce una descrizione di una riga contenente tutte le informazioni dell'utente.
+     * @return Stringa con le informazioni dell'utente in formato "Username: nome - Password: pw - Punti: x - Amici: amico1, amico2,"
+     */
+    public String description() {
+        String d = "Username: " + this.username + " - Password: " + this.password + " - Punti: " + this.points + " - Amici: ";
+        if(!this.friends.isEmpty() || this.friends!=null){
+            for(String friend : this.friends) {
+                d = d + friend + ", ";
+            }
+        }
+        return d;
+    }
+
     @Override
     public String toString() {
         return this.username + " " + this.password + " " + this.points + " " + this.friends;
     }
 
-    public String description() {
-        String d = "Username: " + this.username + "\nPassword: " + this.password + "\nScore: " + this.points;
-        if(!this.friends.isEmpty()){
-            d.concat("\nFriends: ");
-            for(int i=0; i<this.friends.size(); i++) {
-                d.concat(this.friends.get(i).toString()+", ");
-            }
-        }
-        return d;
-    }
-    
 }

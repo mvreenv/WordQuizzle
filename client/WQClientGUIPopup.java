@@ -1,46 +1,38 @@
 package client;
 
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
-
-import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 
+/**
+ * Classe che implementa metodi per visualizzare finestre di dialogo personalizzate.
+ * @author Marina Pierotti
+ */
 public class WQClientGUIPopup {
 
-    public static final int CHALLENGE_INPUT = 19;
-    public static final int ADDFRIEND_INPUT = 29;
-
+    /**
+     * Mantiene il risultato da restituire quando si interagisce con la finestra di dialogo per l'accettazione della sfida.
+     */
     private static int result = JOptionPane.DEFAULT_OPTION;
-    private static String input;
 
+    /**
+     * Mostra una finestra di dialogo con un messaggio testuale.
+     * @param parent Finestra genitore del dialogo.
+     * @param message Messaggio da visualizzare nel dialogo.
+     * @param dialogTitle Titolo della finestra di dialogo.
+     */
     public static void showMessageDialog(JFrame parent, String message, String dialogTitle) {
 
         JFrame dialogFrame = new JFrame(dialogTitle);
@@ -101,125 +93,12 @@ public class WQClientGUIPopup {
 
     }
 
-    public static String showInputDialog(JFrame parent, int inputType) {
-
-        input = "";
-
-        JFrame inputFrame = new JFrame();
-        inputFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        inputFrame.setBackground(WQClientGUI.DARK_BLUE);
-
-        JLabel inputLabel = new JLabel();
-        inputLabel.setForeground(WQClientGUI.WHITE);
-
-        JTextField inputField = new JTextField();
-        inputField.setBackground(WQClientGUI.DARK_BLUE);
-        inputField.setForeground(WQClientGUI.WHITE);
-        inputField.setCaretColor(WQClientGUI.MINT_GREEN);
-
-        JButton okButton = new JButton();
-        okButton.setBackground(WQClientGUI.DARK_BLUE);
-        okButton.setForeground(WQClientGUI.MINT_GREEN);
-
-        okButton.addActionListener(new java.awt.event.ActionListener() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                input = inputField.getText();
-                inputFrame.setVisible(false);
-            }
-        });
-
-        inputField.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e){
-                if(e.getKeyCode()==KeyEvent.VK_ENTER) okButton.doClick();
-            }
-        });
-
-        if (inputType==CHALLENGE_INPUT) {
-            inputFrame.setTitle("Sfida amico");
-            inputLabel.setText("Chi vuoi sfidare?");
-            okButton.setText("Sfida");
-        }
-        else if (inputType==ADDFRIEND_INPUT) {
-            inputFrame.setTitle("Aggiungi amico");
-            inputLabel.setText("Chi vuoi aggiungere come amico?");
-            okButton.setText("Aggiungi");
-        }
-        else {
-            System.out.println("Errore");
-            return null; // se scrivo bene le chiamate del metodo non succede mai
-        }
-
-        JPanel inputPanel = new JPanel();
-        inputPanel.setBackground(WQClientGUI.LIGHT_BLUE);
-        inputPanel.setLayout(new GridBagLayout());
-        GridBagConstraints constraints = new GridBagConstraints();
-        
-        constraints.insets.left = 10;
-        constraints.insets.right = 10;
-        constraints.insets.top = 10;
-        constraints.insets.bottom = 0;
-
-        constraints.gridx = 0;
-        constraints.gridy = 0;
-        inputPanel.add(inputLabel, constraints);
-
-        constraints.gridx = 0;
-        constraints.gridy = 1;
-        constraints.fill = GridBagConstraints.HORIZONTAL;
-        inputPanel.add(inputField, constraints);
-
-        constraints.gridx = 0;
-        constraints.gridy = 2;
-        constraints.insets.bottom = 10;
-        constraints.anchor = GridBagConstraints.ABOVE_BASELINE_TRAILING;
-        constraints.fill = GridBagConstraints.NONE;
-        inputPanel.add(okButton, constraints);
-
-        inputFrame.add(inputPanel);
-        inputFrame.pack();
-        if (parent!=null) {
-            inputFrame.setLocation(parent.getX() + parent.getWidth()/2 - inputFrame.getWidth()/2, parent.getY() + parent.getHeight()/2 - inputFrame.getHeight()/2);
-        }
-        else {
-            inputFrame.setLocationRelativeTo(null);
-        }
-        inputFrame.setVisible(true);
-
-        
-        Timer timer = new Timer(1000, new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                if(!inputFrame.isVisible()) {
-                    input = inputField.getText();
-                    // inputFrame.setVisible(false);
-                    inputFrame.dispose();
-                }
-            }
-        });
-        timer.setRepeats(true);
-        timer.start();
-
-        // do {
-        //     try { Thread.sleep(500); }
-        //     catch (InterruptedException e) { System.out.println("Errore thread."); }
-        //     // inputFrame.invalidate();
-        //     // inputFrame.revalidate();
-        //     // inputFrame.repaint();
-        // // } while (inputFrame.isVisible());
-
-        // while(inputFrame.isVisible()) {
-        //     inputFrame.invalidate();
-        //     inputFrame.revalidate();
-        //     inputFrame.repaint();
-        // }
-
-        System.out.println(input);
-        return input;
-        // return null;
-
-    }
-
+    /**
+     * Mostra una finestra di dialogo che notifica l'utente che ha ricevuto una richiesta di sfida, e chiede se vuole accettarla o rifiutarla.
+     * @param parent Finestra genitore della finestra di dialogo.
+     * @param adversary Avversario da cui si riceve la richiesta di sfida.
+     * @return Risultato dell'azione eseguita dall'utente: JOptionPane.DEFAULT_OPTION se l'utente chiude la finestra di dialogo, JOptionPane.YES_OPTION se l'utente accetta la richiesta di sfida, JOptionPane.NO_OPTION se l'utente rifiuta la richiesta di sfida.
+     */
     public static int showChallengeDialog(JFrame parent, String adversary) {
 
         result = JOptionPane.DEFAULT_OPTION;
@@ -303,19 +182,23 @@ public class WQClientGUIPopup {
         }
         challengeFrame.setVisible(true);
 
+        // dopo 10 secondi la finestra scompare (T1=10 secondi tempo per rispondere a una richiesta di sfida)
+        TimerTask task = new TimerTask(){
+            @Override
+            public void run() {
+                challengeFrame.setVisible(false);
+            }
+        };
+        Timer timer = new Timer();
+        timer.schedule(task, 10000);
+
         do {
             try { Thread.sleep(500);} 
             catch (InterruptedException e) {}
         } while (challengeFrame.isVisible());
 
-        // challengeFrame.dispose();
+        challengeFrame.dispose();
         return result;
-
-    }
-
-    public static void main(String args[]) {
-
-
 
     }
     

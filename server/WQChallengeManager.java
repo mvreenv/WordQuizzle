@@ -5,6 +5,7 @@ import java.util.HashMap;
 
 /**
  * Thread gestore della sfida fra due utenti.
+ * @author Marina Pierotti
  */
 public class WQChallengeManager implements Runnable {
 
@@ -28,6 +29,13 @@ public class WQChallengeManager implements Runnable {
      */
     private HashMap<String, ArrayList<String>> challengeWords;
 
+    /**
+     * Costruttore.
+     * @param u1 Riferimento al gestore del primo utente.
+     * @param u2 Riferimento al gestore del secondo utente.
+     * @param s Riferimento al server.
+     * @param w Lista delle parole da tradurre per la sfida gestita da questa istanza.
+     */
     public WQChallengeManager(WQManager u1, WQManager u2, WQServer s, HashMap<String, ArrayList<String>> w) {
         this.user1 = u1;
         this.user2 = u2;
@@ -42,10 +50,7 @@ public class WQChallengeManager implements Runnable {
         user1.words = new HashMap<>(challengeWords);
         user2.words = new HashMap<>(challengeWords);
 
-        try { // aspetto tre secondi per dare tempo ai due utenti di far partire la sfida
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {}
-
+        // aspetto che entrambi gli utenti abbiano finito di tradurre
         do {
             try {
                 Thread.sleep(500);
