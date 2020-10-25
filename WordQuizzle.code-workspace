@@ -13,7 +13,6 @@
 		},
 		"java.project.referencedLibraries": [
 			"lib/**/*.jar",
-			"json-simple-1.1.1.jar",
 			"gson-2.8.6.jar"
 		]
 	}
