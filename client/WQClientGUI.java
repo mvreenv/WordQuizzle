@@ -404,6 +404,7 @@ public class WQClientGUI {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 WQClientLink.client.logout(WQClientLink.gui.username);
                 frame.invalidate();
+                textAreaAmiciOnline.setText("");
                 frame.remove(settingsPanel);
                 frame.remove(topPanel);
                 frame.add(loginPanel, BorderLayout.CENTER);

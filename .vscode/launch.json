@@ -15,16 +15,14 @@
             "name": "Debug (Launch)-WQClient<WordQuizzle_e64c4ef6>",
             "request": "launch",
             "mainClass": "client.WQClient",
-            "projectName": "WordQuizzle_e64c4ef6",
-            "args": "4000"
+            "projectName": "WordQuizzle_e64c4ef6"
         },
         {
             "type": "java",
             "name": "Debug (Launch)-WQServer<WordQuizzle_e64c4ef6>",
             "request": "launch",
             "mainClass": "server.WQServer",
-            "projectName": "WordQuizzle_e64c4ef6",
-            "args": "4000"
+            "projectName": "WordQuizzle_e64c4ef6"
         }
     ]
 }

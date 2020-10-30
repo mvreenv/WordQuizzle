@@ -65,7 +65,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
         ServerSocketChannel serverSocket = null; //Socket per le connessioni in entrata
         SocketChannel socket = null; // Socket da smistare ai gestori dei singoli client
-        ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(25); // gestori
+        ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10); // gestori
 
         this.port = porta;
         this.isRunning = true;
@@ -302,11 +302,13 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
                             }
                             lettoreDizionario.close();
 
-                            int K = 10; // numero di parole da tradurre per la sfida K
+                            int K = 10; // numero di parole da tradurre per la sfida K=10
                             HashMap<String, ArrayList<String>> paroleSfida = new HashMap<>();
-                            Collections.shuffle(dizionario); // randomizzo l'ordine delle parole nel dizionario
+                            Collections.shuffle(dizionario); // mescolo l'ordine delle parole nel dizionario
                             for(int i=0; i<K; i++){
-                                String parola = dizionario.get(i);
+                                Random random = new Random();
+                                int indice = random.nextInt(99); // numero di parole nel dizionario N = 100
+                                String parola = dizionario.get(indice);
 
                                 // Searches MyMemory for matches against a segment.
                                 // Call example: https://api.mymemory.translated.net/get?q=Hello World!&langpair=en|it

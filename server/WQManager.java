@@ -97,8 +97,8 @@ public class WQManager implements Runnable {
 
     /**
      * Invia in UDP la richiesta di sfida da parte di nickSfidante al client gestito da questo WQManager.
-     * @param nickSfidante 
-     * @param porta gli passo la porta di ascolto del server
+     * @param nickSfidante L'utente che fa la richiesta di sfida.
+     * @param porta Gli passo la porta di ascolto del server.
      */
     public DatagramSocket challengeRequest(String nickSfidante, int porta) {
         

@@ -41,12 +41,12 @@ camicia
 scarpe
 stivali
 anno
-lavoroone
+lavoro
 candela
 lampadina
 palla
 macchina
-scrivan
+scrivania
 mondo
 legge
 ospedale
@@ -71,7 +71,7 @@ trincetto
 penna
 calcolatrice
 pennarello
-colaziia
+colazione
 armadio
 letto
 tappeto
@@ -97,4 +97,4 @@ cuffie
 cappello
 telefono
 lettera
-pos
+posta
