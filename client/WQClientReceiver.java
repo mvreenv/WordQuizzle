@@ -2,7 +2,6 @@ package client;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 
@@ -19,18 +18,12 @@ public class WQClientReceiver implements Runnable {
     private SocketChannel socket;
 
     /**
-     * Chiave per la comunicazione.
-     */
-    private SelectionKey key;
-
-    /**
      * Costruttore.
      * @param s Canale di comunicazione.
      * @param k Chiave per la comunicazione.
      */
-    public WQClientReceiver(SocketChannel s, SelectionKey k) {
+    public WQClientReceiver(SocketChannel s) {
         this.socket = s;
-        this.key = k;
     }
 
     @Override
@@ -39,6 +32,7 @@ public class WQClientReceiver implements Runnable {
         try {
             do  {
                 ByteBuffer buffer = ByteBuffer.allocate(1024);
+
                 int n;
 
                 do {
@@ -48,18 +42,18 @@ public class WQClientReceiver implements Runnable {
                     }
                     buffer.clear();
                     
-                    n = ((SocketChannel) key.channel()).read(buffer);
+                    n = socket.read(buffer);
                     
                 } while (n==0);
 
                 do {
-                    n = ((SocketChannel) key.channel()).read(buffer);
+                    n = socket.read(buffer);
                 } while (n>0);
 
                 buffer.flip();
                 String received = StandardCharsets.UTF_8.decode(buffer).toString();
-                // System.out.println(">> CLIENT TCP RECEIVER >> " + received);
                 WQClientLink.client.receive(received);
+                
             } while (socket.isConnected());
                
         } catch (IOException e) {

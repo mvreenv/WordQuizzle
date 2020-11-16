@@ -31,6 +31,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Implementazione del server WordQuizzle.
+ * @author Marina Pierotti
  */
 
 public class WQServer extends RemoteServer implements WQInterface, WQServerInterface {
@@ -59,6 +60,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
     /**
      * Costruttore.
+     * 
      * @param porta Porta di ascolto del server.
      */
     public WQServer(int porta) {
@@ -81,25 +83,22 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             serverSocket = ServerSocketChannel.open();
             serverSocket.socket().bind(new InetSocketAddress(porta));
             serverSocket.configureBlocking(false);
+            
             System.out.println(">> Il server WordQuizzle è online!");
-
-            // listener per input comandi 
-            Scanner scanner = new Scanner(System.in);
 
             // ciclo di ascolto
             do {
                 socket = serverSocket.accept();
-
+                
                 // smistamento ai gestori
                 if(socket!=null) {
-                    threadPool.execute(new WQManager(this, socket));
+                    threadPool.execute(new WQManager(this,socket));
                     System.out.println(">> SERVER >> Nuovo gestore in esecuzione.");
                 }
 
             } while (isRunning);
 
             System.out.println(">> Server in corso di spegnimento.");
-            scanner.close();
             threadPool.shutdown();
             serverSocket.close();
 
@@ -111,7 +110,6 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             System.out.println(">> Il server è offline.");
             System.exit(1); 
         }
-        
 
     }
 
@@ -232,7 +230,6 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
             return -3;
         }
 
-        
     }
 
     /**
@@ -280,7 +277,7 @@ public class WQServer extends RemoteServer implements WQInterface, WQServerInter
 
                 if(onlineUsers.containsKey(nickAmico)) { // controllo che nickAmico sia online
 
-                    DatagramSocket datagramSocket = onlineUsers.get(nickAmico).challengeRequest(nickUtente, this.port); 
+                    DatagramSocket datagramSocket = onlineUsers.get(nickAmico).challengeRequest(nickUtente); 
 
                     if(datagramSocket!=null) { // la richiesta è stata accettata
 

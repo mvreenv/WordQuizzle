@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.rmi.NotBoundException;
@@ -35,11 +33,6 @@ public class WQClient {
      * Socket per la comunicazione.
      */
     private SocketChannel socket;
-
-    /**
-     * Chiave per la comunicazione.
-     */
-    private SelectionKey key;
     
     /**
      * Timer per il tempo di invio di una traduzione durante la sfida.
@@ -95,27 +88,25 @@ public class WQClient {
             System.out.println(">> CLIENT >> Connessione in corso sulla porta " + (port));
             socket.connect(new InetSocketAddress("127.0.0.1", port)); // indirizzo di loopback perché il server gira sulla stessa macchina
             socket.configureBlocking(false);
-            Selector selector = Selector.open();
-            key = socket.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
 
             // prova ad eseguire il login
             String string = "login " + username + " " + password;
-            ByteBuffer buf = ByteBuffer.wrap(string.getBytes());
+            ByteBuffer buffer = ByteBuffer.wrap(string.getBytes());
             int n;
             do {
-                n = ((SocketChannel)key.channel()).write(buf);
+                n = socket.write(buffer);
             } while (n>0);
 
             // attende di ricevere una risposta
-            buf = ByteBuffer.allocate(1024);
+            buffer = ByteBuffer.allocate(1024);
             do {
-                n = ((SocketChannel)key.channel()).read(buf);
+                n = socket.read(buffer);
             } while (n==0); 
             do { 
-                n = ((SocketChannel)key.channel()).read(buf);
+                n = socket.read(buffer);
             } while (n>0);
-            buf.flip();
-            String received = StandardCharsets.UTF_8.decode(buf).toString();
+            buffer.flip();
+            String received = StandardCharsets.UTF_8.decode(buffer).toString();
             String command = received.split(" ")[0];
             // legge la risposta
             if (command.equals("answer")) {
@@ -124,16 +115,16 @@ public class WQClient {
                     // ottengo i dati dell'utente
                     WQUser myUser = null;
                     Gson json = new Gson();
-                    buf = ByteBuffer.allocate(256);
+                    buffer = ByteBuffer.allocate(256);
                     do {
-                        buf.clear();
-                        n = ((SocketChannel)key.channel()).read(buf);
+                        buffer.clear();
+                        n = socket.read(buffer);
                     } while (n==0); 
                     do { 
-                        n = ((SocketChannel)key.channel()).read(buf);
+                        n = socket.read(buffer);
                     } while (n>0);
-                    buf.flip();
-                    received = StandardCharsets.UTF_8.decode(buf).toString();
+                    buffer.flip();
+                    received = StandardCharsets.UTF_8.decode(buffer).toString();
                     myUser = json.fromJson(received, WQUser.class);
                     if (myUser!=null) {
                         WQClientLink.gui.setUser(myUser.username, myUser.points);
@@ -141,23 +132,23 @@ public class WQClient {
                     }
 
                     // avvio il thread listener TCP del client
-                    new Thread(new WQClientReceiver(socket, key)).start();
+                    new Thread(new WQClientReceiver(socket)).start();
 
                     // avvio il listener UDP 
                     try {
                         DatagramSocket datagramSocket = new DatagramSocket();
                         new Thread(new WQClientDatagramReceiver(datagramSocket)).start();
                         string = "challengeport " + datagramSocket.getLocalPort();
-                        buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
+                        buffer = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
                         do { 
-                            n = ((SocketChannel) key.channel()).write(buf); 
+                            n = socket.write(buffer);
                         } while (n > 0);
                         System.out.println(">> CLIENT >> Comunicazione UDP su porta " + datagramSocket.getLocalPort());
                     } catch (Exception e) {
                         string = "challengeport -1";
-                        buf = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
+                        buffer = ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
                         do { 
-                            n = ((SocketChannel) key.channel()).write(buf); 
+                            n = socket.write(buffer);
                         } while (n > 0);
                         System.out.println(">> CLIENT >> Errore avvio comunicazione UDP " + e.getMessage());
                     }
@@ -210,7 +201,7 @@ public class WQClient {
 
             int n;
             do {
-                n = ((SocketChannel)key.channel()).write(buffer);
+                n = socket.write(buffer);
             } while (n>0);
 
             // messaggi di risposta a addfriend per dare feedback all'utente tramite gui client
@@ -218,10 +209,10 @@ public class WQClient {
                 buffer.clear();
                 buffer = ByteBuffer.allocate(1024);
                 do {
-                    n = ((SocketChannel)key.channel()).read(buffer);
+                    n = socket.read(buffer);
                 } while(n==0);
                 do {
-                    n = ((SocketChannel)key.channel()).read(buffer);
+                    n = socket.read(buffer);
                 } while(n>0);
                 buffer.flip();
                 String risposta = StandardCharsets.UTF_8.decode(buffer).toString();

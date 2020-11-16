@@ -6,8 +6,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -17,6 +15,7 @@ import com.google.gson.Gson;
 
 /**
  * Thread gestore della comunicazione dal server alla singola istanza client.
+ * @author Marina Pierotti
  */
 
 public class WQManager implements Runnable {
@@ -30,11 +29,6 @@ public class WQManager implements Runnable {
      * Canale di comunicazione.
      */
     private SocketChannel socket;
-
-    /**
-     * Chiave per la comunicazione.
-     */
-    private SelectionKey key;
 
     /**
      * Indica lo stato del gestore.
@@ -57,8 +51,7 @@ public class WQManager implements Runnable {
     public boolean isPlaying;
 
     /**
-     * Lista delle parole da tradurre per la sfida, finché non c'è una sfida in
-     * corso è null.
+     * Lista delle parole da tradurre per la sfida, finché non c'è una sfida in corso è null.
      */
     public HashMap<String, ArrayList<String>> words;
 
@@ -81,7 +74,6 @@ public class WQManager implements Runnable {
 
     /**
      * Invia il messaggio msg al client.
-     * 
      * @param str Il testo da spedire
      */
     public void send(String msg) {
@@ -89,7 +81,7 @@ public class WQManager implements Runnable {
             ByteBuffer buf = ByteBuffer.wrap(msg.getBytes(StandardCharsets.UTF_8));
             int n;
             do {
-                n = ((SocketChannel) key.channel()).write(buf);
+                n = socket.write(buf);
             } while (n > 0);
         } catch (Exception e) {
         }
@@ -98,9 +90,9 @@ public class WQManager implements Runnable {
     /**
      * Invia in UDP la richiesta di sfida da parte di nickSfidante al client gestito da questo WQManager.
      * @param nickSfidante L'utente che fa la richiesta di sfida.
-     * @param porta Gli passo la porta di ascolto del server.
+     * @return la socket UDP eventualmente aperta
      */
-    public DatagramSocket challengeRequest(String nickSfidante, int porta) {
+    public DatagramSocket challengeRequest(String nickSfidante) {
         
         try {
             DatagramSocket datagramSocket;
@@ -171,11 +163,11 @@ public class WQManager implements Runnable {
                     try { Thread.sleep(100); }
                     catch (InterruptedException e) {}
                     buffer.clear();
-                    n = ((SocketChannel)key.channel()).read(buffer);
+                    n = socket.read(buffer);
                 } while (n==0);
 
                 do {
-                    n = ((SocketChannel)key.channel()).read(buffer);
+                    n = socket.read(buffer);
                 } while (n>0);
 
                 buffer.flip();
@@ -217,32 +209,28 @@ public class WQManager implements Runnable {
         String messaggio;
 
         try {
-
-            // configuro socket e selector per la comunicazione
             socket.configureBlocking(false);
-            Selector selector = Selector.open();
-            key = socket.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 
             // corpo del thread gestore
             do {
 
                 if (words==null) { // niente sfida in corso
 
-                    int n; // mantiene il numero di byte letti in 'buffer', diventa -1 se si arriva alla fine dello stream del SocketChannel
+                    int n; // mantiene il numero di byte letti in 'buffer'
                     do {
                         try {
                         Thread.sleep(100);
                         } catch (InterruptedException e) {}
                         buffer.clear();
-                        n =  ((SocketChannel) key.channel()).read(buffer);
-                    } while (n==0 && words==null); //
+                        n = socket.read(buffer);
+                    } while (n==0 && words==null); 
 
                     if (n==-1) isOnline = false; // non c'è più niente da leggere sul SocketChannel
 
                     else if(words==null) { // niente sfida in corso
 
                         do {
-                            n = ((SocketChannel) key.channel()).read(buffer);
+                            n = socket.read(buffer);
                         } while (n>0);
                         buffer.flip(); // The limit is set to the current position and then the position is set to zero.
 
@@ -266,7 +254,7 @@ public class WQManager implements Runnable {
                                         messaggio = "answer LOGINOK";
                                         ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                         do {
-                                            n = ((SocketChannel)key.channel()).write(buf);
+                                            n = socket.write(buf);
                                         } while (n>0);
                                         System.out.println(">> MANAGER >> " + user + " si è connesso.");
 
@@ -276,7 +264,7 @@ public class WQManager implements Runnable {
                                         buf.clear();
                                         buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                         do {
-                                            n = ((SocketChannel)key.channel()).write(buf);
+                                            n = socket.write(buf);
                                         } while (n>0);
 
                                         // leggo numero di porta per le sfide
@@ -284,10 +272,10 @@ public class WQManager implements Runnable {
                                         do {
                                             Thread.sleep(100);
                                             buf.clear();
-                                            n = ((SocketChannel)key.channel()).read(buf);
+                                            n = socket.read(buf);
                                         } while (n==0);
                                         do {
-                                            n = ((SocketChannel)key.channel()).read(buf);
+                                            n = socket.read(buf);
                                         } while (n>0);
                                         buf.flip();
 
@@ -301,7 +289,7 @@ public class WQManager implements Runnable {
                                         messaggio = "answer LOGINERR1";
                                         ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                         do {
-                                            n = ((SocketChannel)key.channel()).write(buf);
+                                            n = socket.write(buf);
                                         } while (n>0);
                                         isOnline = false;
                                     }
@@ -309,7 +297,7 @@ public class WQManager implements Runnable {
                                         messaggio = "answer LOGINERR2";
                                         ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                         do {
-                                            n = ((SocketChannel)key.channel()).write(buf);
+                                            n = socket.write(buf);
                                         } while (n>0);
                                         isOnline = false;
                                     }
@@ -317,7 +305,7 @@ public class WQManager implements Runnable {
                                         messaggio = "answer LOGINERR3";
                                         ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                         do {
-                                            n = ((SocketChannel)key.channel()).write(buf);
+                                            n = socket.write(buf);
                                         } while (n>0);
                                         isOnline = false;
                                     }
@@ -326,7 +314,7 @@ public class WQManager implements Runnable {
                                     messaggio = "answer ERR";
                                     ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                     do {
-                                        n = ((SocketChannel)key.channel()).write(buf);
+                                        n = socket.write(buf);
                                     } while (n>0);
                                 }
                                 break;
@@ -338,28 +326,28 @@ public class WQManager implements Runnable {
                                     messaggio = "answer ADDFRIENDOK";
                                     ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                     do {
-                                        n = ((SocketChannel)key.channel()).write(buf);
+                                        n = socket.write(buf);
                                     } while (n>0);
                                 }
                                 else if (result==-1) { // uno dei due username non esiste
                                     messaggio = "answer ADDFRIENDERR1";
                                     ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                     do {
-                                        n = ((SocketChannel)key.channel()).write(buf);
+                                        n = socket.write(buf);
                                     } while (n>0);
                                 }
                                 else if (result==-2) { // la relazione di amicizia è già esistente
                                     messaggio = "answer ADDFRIENDERR2";
                                     ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                     do {
-                                        n = ((SocketChannel)key.channel()).write(buf);
+                                        n = socket.write(buf);
                                     } while (n>0);
                                 }
                                 else if (result==-3) { // se nickUtente e nickAmico sono lo stesso username
                                     messaggio = "answer ADDFRIENDERR3";
                                     ByteBuffer buf = ByteBuffer.wrap(messaggio.getBytes(StandardCharsets.UTF_8));
                                     do {
-                                        n = ((SocketChannel)key.channel()).write(buf);
+                                        n = socket.write(buf);
                                     } while (n>0);
                                 }
                                 break;

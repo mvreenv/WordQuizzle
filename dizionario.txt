@@ -84,7 +84,7 @@ ripostiglio
 film
 settimana
 schermo
-cavota
+carota
 gioco
 fila
 codice
